@@ -196,8 +196,25 @@ class GameState(object):
       not self.is_move_self_capture(self.nplayer, move) and
       not self.does_move_violate_ko(self.nplayer, move))
 
-  #TODO: implement method legal_moves() that return list of moves that are legal to make
-  #TODO: implement method winner()
+  def legal_moves(self):
+    if self.is_over():
+      return list()
+    ret = [Move.pass_turn, Move.resign]
+    for ri in range(1, self.board.nrows + 1):
+      for ci in range(1, self.board.ncols + 1):
+        m = Move.play(Point(ri, ci))
+        if self.is_valid_move(m):
+          ret.append(m)
+    return ret
+
+  def winner():
+    assert self.is_over() #need to call is_over first
+    if self.pmove == Move.resign:
+      return self.nplayer
+    #1: remove gostrings that have less than 2 eyes (liberties that are also eyes)
+    #2: count number of pieces per player
+    #3: count number of territories per player, a territory is a empty location fully surrounded by one player
+    #TODO: count the pieces according to international rule. winner is the one with bigger count. note white has additional base points
 
   @classmethod
   def new_game(cls, board_size):
