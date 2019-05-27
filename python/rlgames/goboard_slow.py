@@ -1,27 +1,6 @@
 import copy
-from gotypes import Player, Point
-
-# There are 3 types of moves player can make: place piece, pass, or resign
-# a good bot should know how to resign
-class Move(object):
-  def __init__(self, point=None, is_pass=False, is_resign=False):
-    assert (point is not None) ^ is_pass ^ is_resign
-    self.pt = point
-    self.is_play = self.pt is not None
-    self.is_pass = is_pass
-    self.is_resign = is_resign
-
-  @classmethod
-  def play(cls, point):
-    return cls(point)
-
-  @classmethod
-  def pass_turn(cls):
-    return cls(is_pass = True)
-
-  @classmethod
-  def resign(cls):
-    return cls(is_resign = True)
+from common_types import Player, Point
+from game_base import Move, BoardBase, GameStateBase
 
 # Tracks groups of stones of the same color to speed up checking for liberties
 class GoString(object):
@@ -51,14 +30,13 @@ class GoString(object):
            self.stones == other.stones and \
            self.liberties == other.liberties
 
-class Board(object):
-  def __init__(self, num_rows, num_cols):
-    self.nrows = num_rows
-    self.ncols = num_cols
+class Board(BoardBase):
+  def __init__(self, size):
+    self.sz = size
     self.grid = dict()
 
   def is_on_grid(self, pt):
-    return 1 <= pt.r <= self.nrows and 1 <= pt.c <= self.ncols
+    return 1 <= pt.r <= self.sz and 1 <= pt.c <= self.sz
   
   def get(self, pt):
     string = self.grid.get(pt)
@@ -67,7 +45,7 @@ class Board(object):
     else:
       return string.color
 
-  def get_go_string(self, pt):
+  def get_go_string_(self, pt):
     return self.grid.get(pt)
 
   def remove_string_(self, string):
@@ -115,7 +93,7 @@ class Board(object):
       if string.num_liberties == 0:
         self.remove_string_(string)
 
-class GameState(object):
+class GameState(GameStateBase):
   def __init__(self, board, next_player, previous, move):
     self.board = board
     self.nplayer = next_player
@@ -149,7 +127,7 @@ class GameState(object):
     #not very efficient here, should avoid deep copy
     next_board = copy.deepcopy(self.board)
     next_board.place_stone(player, move.pt)
-    new_string = next_board.get_go_string(move.pt)
+    new_string = next_board.get_go_string_(move.pt)
     return new_string.num_liberties == 0
 
   #go rule where you cannot make a move that looks exactly
@@ -180,8 +158,10 @@ class GameState(object):
       not self.is_move_self_capture(self.nplayer, move) and
       not self.does_move_violate_ko(self.nplayer, move))
 
+  #TODO: implement legal_moves()
+  #TODO: implement winner()
+
   @classmethod
   def new_game(cls, board_size):
-    if isinstance(board_size, int):
-      board = Board(board_size, board_size)
-      return cls(board, Player.black, None, None)
+    board = Board(board_size)
+    return cls(board, Player.black, None, None)

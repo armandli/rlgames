@@ -1,5 +1,5 @@
 import random
-from gotypes import Player, Point
+from common_types import Player, Point
 
 #Create perfect hash value for each go board state
 
@@ -15,13 +15,13 @@ MAX63 = 0x7fffffffffffffff
 
 table = dict()
 empty_board = 0
-for row in range(1, 21):
-  for col in range(1, 21):
+for row in range(1, 20):
+  for col in range(1, 20):
     for state in (Player.black, Player.white):
       code = random.randint(0, MAX63)
       table[Point(row, col), state] = code
 
-print('from gotypes import Player, Point')
+print('from common_types import Player, Point')
 print('')
 print("__all__ = ['HASH_CODE', 'EMPTY_BOARD']")
 print('')

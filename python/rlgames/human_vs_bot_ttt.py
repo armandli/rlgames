@@ -1,13 +1,13 @@
 from common_types import Player
 from game_base import Move
-from goboard import GameState
-from agents.random import RandomBot
+from tictactoe_board import GameState
+from agents.minimax import MinimaxAgent
 from util import print_board, print_move, point_from_coord
 
 def main():
-  board_size = 9
+  board_size = 3
   game = GameState.new_game(board_size)
-  bot = RandomBot()
+  bot = MinimaxAgent(5, None)
   while not game.is_over():
     print_board(game.board)
     if game.nplayer == Player.black:
@@ -22,9 +22,9 @@ def main():
   if winner is None:
     print("Tie")
   elif winner == Player.black:
-    print("Black win")
+    print("Human won")
   else:
-    print("White win")
-    
+    print("Bot won")
+
 if __name__ == '__main__':
   main()
