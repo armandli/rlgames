@@ -1,6 +1,6 @@
 import copy
-from common_types import Player, Point
-from game_base import Move, BoardBase, GameStateBase
+from rlgames.common_types import Player, Point
+from rlgames.game_base import Move, BoardBase, GameStateBase
 
 class Board(BoardBase):
   def __init__(self, size):
@@ -38,10 +38,11 @@ class GameState(GameStateBase):
     assert self.pmove.is_play
     pt = self.pmove.pt
     player = self.nplayer.other
-    if sum([self.board.get(Point(ri, pt.c)) == player for ri in range(1, self.board.sz + 1)]) == self.board.sz or \
-       sum([self.board.get(Point(pt.r, ci)) == player for ci in range(1, self.board.sz + 1)]) == self.board.sz or \
-       sum([self.board.get(Point(i, i)) == player for i in range(1, self.board.sz + 1)]) == self.board.sz or \
-       sum([self.board.get(Point(i, self.board.sz + 1 - i)) == player for i in range(1, self.board.sz + 1)]) == self.board.sz:
+    if (
+      sum([self.board.get(Point(ri, pt.c)) == player for ri in range(1, self.board.sz + 1)]) == self.board.sz or
+      sum([self.board.get(Point(pt.r, ci)) == player for ci in range(1, self.board.sz + 1)]) == self.board.sz or
+      sum([self.board.get(Point(i, i)) == player for i in range(1, self.board.sz + 1)]) == self.board.sz or
+      sum([self.board.get(Point(i, self.board.sz + 1 - i)) == player for i in range(1, self.board.sz + 1)]) == self.board.sz):
       return True
     return False
 

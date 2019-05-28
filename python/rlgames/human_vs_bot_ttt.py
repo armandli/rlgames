@@ -1,13 +1,15 @@
-from common_types import Player
-from game_base import Move
-from tictactoe_board import GameState
-from agents.minimax import MinimaxAgent
-from util import print_board, print_move, point_from_coord
+from rlgames.common_types import Player
+from rlgames.game_base import Move
+from rlgames.tictactoe_board import GameState
+from rlgames.agents.minimax import MinimaxAgent
+from rlgames.agents.mcts import MCTSAgent
+from rlgames.util import print_board, print_move, point_from_coord
 
 def main():
   board_size = 3
   game = GameState.new_game(board_size)
-  bot = MinimaxAgent(5, None)
+  #bot = MinimaxAgent(5, None)
+  bot = MCTSAgent(362000, 0.1, 64)
   while not game.is_over():
     print_board(game.board)
     if game.nplayer == Player.black:
@@ -18,6 +20,7 @@ def main():
       move = bot.select_move(game)
     print_move(game.nplayer, move)
     game = game.apply_move(move)
+  print_board(game.board)
   winner = game.winner()
   if winner is None:
     print("Tie")

@@ -1,7 +1,7 @@
 import random
-from agents.base import Agent
-from game_base import Move
-from common_types import Point, Player
+from rlgames.agents.base import Agent
+from rlgames.game_base import Move
+from rlgames.common_types import Point, Player
 
 #TODO: put these somewhere common
 MAX_SCORE = 1.
@@ -14,7 +14,6 @@ class MinimaxAgent(Agent):
     self.depth = depth
     self.eval_fn = eval_fn
 
-  #TODO: there could be multiple equally good moves, we should allow random choice
   def select_move(self, game_state):
     #(_, best_move) = self.recursive_minimax_search_(game_state, self.depth, self.eval_fn)
     (_, best_move) = self.recursive_alpha_beta_minimax_search_(game_state, self.depth, self.eval_fn, MIN_SCORE, MAX_SCORE)
@@ -37,7 +36,7 @@ class MinimaxAgent(Agent):
         return (MIN_SCORE, None)
     if depth == 0:
       return (eval_fn(game_state), None)
-    best_move = Move.pass_turn()
+    best_moves = list()
     if game_state.nplayer == Player.black:
       best_score = MIN_SCORE
     else:
@@ -50,8 +49,13 @@ class MinimaxAgent(Agent):
       (score, _) = self.recursive_minimax_search_(nstate, ndepth, eval_fn)
       if self.is_improvement_(score, best_score, game_state.nplayer):
         best_score = score
-        best_move = m
-    return (best_score, best_move)
+        best_moves = [m]
+      elif score == best_score:
+        best_moves.append(m)
+    if len(best_moves) > 0:
+      return (best_score, random.choice(best_moves))
+    else:
+      return (best_score, Move.pass_turn())
 
   def should_prune_(self, score, alpha, beta, player):
     if player == Player.black:
@@ -81,7 +85,7 @@ class MinimaxAgent(Agent):
         return (MIN_SCORE, None)
     if depth == 0:
       return (eval_fn(game_state), None)
-    best_move = Move.pass_turn()
+    best_moves = list()
     if game_state.nplayer == Player.black:
       best_score = MIN_SCORE
     else:
@@ -96,11 +100,16 @@ class MinimaxAgent(Agent):
       (score, _) = self.recursive_alpha_beta_minimax_search_(nstate, ndepth, eval_fn, alpha, beta)
       if self.is_improvement_(score, best_score, game_state.nplayer):
         best_score = score
-        best_move = m
+        best_moves = [m]
         if game_state.nplayer == Player.black:
           if best_score > alpha:
             alpha = best_score
         else:
           if best_score < beta:
             beta = best_score
-    return (best_score, best_move)
+      elif score == best_score:
+        best_moves.append(m)
+    if len(best_moves) > 0:
+      return (best_score, random.choice(best_moves))
+    else:
+      return (best_score, Move.pass_turn())

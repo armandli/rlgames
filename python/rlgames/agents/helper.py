@@ -1,4 +1,4 @@
-from common_types import Point
+from rlgames.common_types import Point
 
 # this is a flawed definition of an eye
 def is_point_an_eye(board, point, color):

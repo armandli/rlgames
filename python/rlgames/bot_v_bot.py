@@ -1,18 +1,22 @@
 import time
-from common_types import Player
-from goboard import GameState
-from agents.random import RandomBot
-from util import print_board, print_move
+from rlgames.common_types import Player
+from rlgames.goboard import GameState
+from rlgames.agents.random import RandomAgent
+from rlgames.agents.random_fast import FastRandomAgent
+from rlgames.util import print_board, print_move
 
 def main():
   board_size = 9
   game = GameState.new_game(board_size)
   bots = {
-    Player.black : RandomBot(),
-    Player.white : RandomBot(),
+#    Player.black : RandomAgent(),
+#    Player.white : RandomAgent(),
+
+    Player.black : FastRandomAgent(board_size),
+    Player.white : FastRandomAgent(board_size),
   }
   while not game.is_over():
-    time.sleep(0.3) # slow down so we can observe
+    time.sleep(0.1) # slow down so we can observe
 
     #print(chr(27) + "[2J") #clear screen
     print_board(game.board)

@@ -1,5 +1,5 @@
 import random
-from common_types import Player, Point
+from rlgames.common_types import Player, Point
 
 #Create perfect hash value for each go board state
 

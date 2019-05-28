@@ -1,13 +1,22 @@
-from common_types import Player
-from game_base import Move
-from goboard import GameState
-from agents.random import RandomBot
-from util import print_board, print_move, point_from_coord
+import argparse
+from rlgames.common_types import Player
+from rlgames.game_base import Move
+from rlgames.goboard import GameState
+from rlgames.agents.random import RandomAgent
+from rlgames.agents.mcts import MCTSAgent
+from rlgames.util import print_board, print_move, point_from_coord
+
+def parse_args():
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--size', '-z', type=int, default=19)
+  args = parser.parse_args()
+  return args
 
 def main():
-  board_size = 9
+  args = parse_args()
+  board_size = args.size
   game = GameState.new_game(board_size)
-  bot = RandomBot()
+  bot = RandomAgent()
   while not game.is_over():
     print_board(game.board)
     if game.nplayer == Player.black:

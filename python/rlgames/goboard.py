@@ -1,7 +1,8 @@
 import copy
-from common_types import Player, Point
-import zobrist
-from game_base import Move, BoardBase, GameStateBase
+import rlgames.zobrist as zobrist
+from rlgames.common_types import Player, Point
+from rlgames.game_base import Move, BoardBase, GameStateBase
+from rlgames.goscore import AreaScore
 
 # Tracks groups of stones of the same color to speed up checking for liberties
 class GoString(object):
@@ -28,10 +29,14 @@ class GoString(object):
     return len(self.liberties)
 
   def __eq__(self, other):
-    return isinstance(other, GoString) and \
-           self.color == other.color and \
-           self.stones == other.stones and \
-           self.liberties == other.liberties
+    return (
+      isinstance(other, GoString) and
+      self.color == other.color and
+      self.stones == other.stones and
+      self.liberties == other.liberties)
+
+  def __deepcopy__(self, memodict={}):
+    return GoString(self.color, self.stones, copy.deepcopy(self.liberties))
 
 class Board(BoardBase):
   def __init__(self, size):
@@ -110,6 +115,12 @@ class Board(BoardBase):
       if string.num_liberties == 0:
         self.remove_string_(string)
 
+  def __deepcopy__(self, memodict={}):
+    copied = Board(self.sz)
+    copied.grid = copy.copy(self.grid)
+    copied.hash = self.hash
+    return copied
+
 class GameState(GameStateBase):
   def __init__(self, board, next_player, previous, move):
     self.board = board
@@ -142,6 +153,7 @@ class GameState(GameStateBase):
       return False
     return self.pmove.is_pass and self.prev.pmove.is_pass
 
+  # self capture is optionally allowed in go, we assume self capture are always bad and prune these moves
   def is_move_self_capture_(self, player, move):
     if not move.is_play:
       return False
@@ -152,7 +164,7 @@ class GameState(GameStateBase):
     return new_string.num_liberties == 0
 
   #go rule where you cannot make a move that looks exactly
-  #the same as previous state
+  #the same as previous state for the other player
   def does_move_violate_ko_(self, player, move):
     if not move.is_play:
       return False
@@ -186,13 +198,12 @@ class GameState(GameStateBase):
     return ret
 
   def winner(self):
-    assert self.is_over() #need to call is_over first
+    if not self.is_over():
+      return None
     if self.pmove.is_resign:
       return self.nplayer
-    #1: remove gostrings that have less than 2 eyes (liberties that are also eyes)
-    #2: count number of pieces per player
-    #3: count number of territories per player, a territory is a empty location fully surrounded by one player
-    #TODO: count the pieces according to international rule. winner is the one with bigger count. note white has additional base points
+    scorer = AreaScore(copy.deepcopy(self.board))
+    return scorer.winner()
 
   @classmethod
   def new_game(cls, board_size):

@@ -1,4 +1,4 @@
-from common_types import Player, Point
+from rlgames.common_types import Player, Point
 
 COLS = 'ABCDEFGHJKLMNOPQRST'
 STONE_TO_CHAR = {

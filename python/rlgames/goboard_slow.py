@@ -1,6 +1,6 @@
 import copy
-from common_types import Player, Point
-from game_base import Move, BoardBase, GameStateBase
+from rlgames.common_types import Player, Point
+from rlgames.game_base import Move, BoardBase, GameStateBase
 
 # Tracks groups of stones of the same color to speed up checking for liberties
 class GoString(object):
@@ -25,10 +25,11 @@ class GoString(object):
     return len(self.liberties)
 
   def __eq__(self, other):
-    return isinstance(other, GoString) and \
-           self.color == other.color and \
-           self.stones == other.stones and \
-           self.liberties == other.liberties
+    return (
+      isinstance(other, GoString) and
+      self.color == other.color and
+      self.stones == other.stones and
+      self.liberties == other.liberties)
 
 class Board(BoardBase):
   def __init__(self, size):
