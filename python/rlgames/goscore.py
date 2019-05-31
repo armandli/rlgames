@@ -3,7 +3,7 @@ from rlgames.common_types import Player, Point
 #TODO: test
 
 #scoring using area score rule: player pieces + territory + komi
-class AreaScore(object):
+class AreaScore:
   def __init__(self, board):
     self.board = board
     self.labels = dict()

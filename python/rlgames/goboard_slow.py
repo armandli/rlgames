@@ -3,7 +3,7 @@ from rlgames.common_types import Player, Point
 from rlgames.game_base import Move, BoardBase, GameStateBase
 
 # Tracks groups of stones of the same color to speed up checking for liberties
-class GoString(object):
+class GoString:
   def __init__(self, color, stones, liberties):
     self.color = color
     self.stones = set(stones)
