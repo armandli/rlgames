@@ -1,2 +1,2 @@
-# gobot
+# RLGames
 machine learning for go
