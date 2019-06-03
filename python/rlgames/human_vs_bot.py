@@ -16,7 +16,8 @@ def main():
   args = parse_args()
   board_size = args.size
   game = GameState.new_game(board_size)
-  bot = RandomAgent()
+  #bot = RandomAgent()
+  bot = MCTSAgent(100, 1., 64)
   while not game.is_over():
     print_board(game.board)
     if game.nplayer == Player.black:

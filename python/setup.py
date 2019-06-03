@@ -11,4 +11,5 @@ setup(
   data_files=[],
   install_requires=[],
   entry_points={},
+  scripts=['rlgames/bot_vs_bot.py', 'rlgames/human_vs_bot.py', 'rlgames/bot_vs_bot_ttt.py', 'rlgames/human_vs_bot_ttt.py', 'rlgames/index_processor.py']
 )

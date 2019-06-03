@@ -9,11 +9,11 @@ def main():
   board_size = 3
   game = GameState.new_game(board_size)
   bots = {
-#    Player.black : MCTSAgent(362000, 0.1, 64),
-#    Player.white : MCTSAgent(362000, 0.1, 64),
+    Player.black : MCTSAgent(362000, 1., 128),
+    Player.white : MCTSAgent(362000, 1., 128),
 
-    Player.black : MinimaxAgent(5, None),
-    Player.white : MinimaxAgent(5, None),
+#    Player.black : MinimaxAgent(5, None),
+#    Player.white : MinimaxAgent(5, None),
   }
   while not game.is_over():
     time.sleep(0.1)

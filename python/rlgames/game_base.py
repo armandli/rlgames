@@ -35,7 +35,7 @@ class BoardBase(object):
 
 class GameStateBase(object):
   @abstractmethod
-  def apply_moves(self, move):
+  def apply_move(self, move):
     raise NotImplementedError()
   @abstractmethod
   def is_over(self):

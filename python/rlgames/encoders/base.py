@@ -2,7 +2,7 @@ import importlib
 from abc import abstractmethod
 
 def get_encoder_by_name(name, board_size):
-  module = importlib.import_module('rlgames.encoders' + name)
+  module = importlib.import_module('rlgames.encoders.' + name)
   constructor = getattr(module, 'create')
   return constructor(board_size)
 

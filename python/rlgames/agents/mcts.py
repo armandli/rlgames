@@ -1,5 +1,7 @@
 import math
 import random
+import numpy as np
+
 from rlgames.agents.base import Agent
 from rlgames.agents.helper import is_point_an_eye
 from rlgames.game_base import Move
@@ -45,8 +47,11 @@ class MCTSAgent(Agent):
     self.expandmax = expandmax
     self.efactor = exploration_factor
     self.mc_trials = mc_sample_size
+    self.cache = []
 
   def select_move(self, game_state):
+    if len(self.cache) != game_state.board.sz * game_state.board.sz:
+      self.cache = self.init_cache_(game_state.board.sz)
     root = MCTSNode(game_state)
     for _ in range(self.expandmax):
       new_node = self.recursive_uct_(root)
@@ -109,23 +114,26 @@ class MCTSAgent(Agent):
       else:
         return None
 
+  def init_cache_(self, sz):
+    return [Point(ri, ci) for ri in range(1, sz + 1) for ci in range(1, sz + 1)]
+
+  def random_move_(self, game_state):
+    idxes = np.arange(len(self.cache))
+    np.random.shuffle(idxes)
+    for idx in idxes:
+      m = Move.play(self.cache[idx])
+      if (game_state.is_valid_move(m) and
+          not is_point_an_eye(game_state.board, m.pt, game_state.nplayer)):
+        return m
+    return Move.pass_turn()
+
   def mc_play_(self, game_state):
     score = 0.
     for _ in range(self.mc_trials):
       play_state = game_state
       while not play_state.is_over():
-        candidates = list()
-        for move in play_state.legal_moves():
-          if not move.is_pass and not move.is_resign:
-            if not is_point_an_eye(play_state.board, move.pt,
-                    game_state.nplayer):
-              candidates.append(move)
-        if not candidates:
-          move = Move.pass_turn()
-          play_state = play_state.apply_move(move)
-        else:
-          move = random.choice(candidates)
-          play_state = play_state.apply_move(move)
+        move = self.random_move_(play_state)
+        play_state = play_state.apply_move(move)
       winner = play_state.winner()
       if winner is None:
         score += TIE_SCORE
