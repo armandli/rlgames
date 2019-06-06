@@ -20,7 +20,7 @@ values should pass is_valid_property_value().
 Adapted from gomill by Matthew Woodcraft, https://github.com/mattheww/gomill
 """
 
-from __future__ import absolute_import
+#from __future__ import absolute_import
 import re
 import string
 

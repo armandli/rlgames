@@ -5,7 +5,7 @@ This is intended for use with SGF FF[4]; see http://www.red-bean.com/sgf/
 Adapted from gomill by Matthew Woodcraft, https://github.com/mattheww/gomill
 """
 
-from __future__ import absolute_import
+#from __future__ import absolute_import
 import datetime
 
 import six
@@ -15,7 +15,7 @@ from . import sgf_properties
 
 __all__ = [
     'Node',
-    'Sgf_game',
+    'sgf_game',
     'Tree_node',
 ]
 
@@ -336,9 +336,9 @@ class Node:
 class Tree_node(Node):
     """A node embedded in an SGF game.
 
-    A Tree_node is a Node that also knows its position within an Sgf_game.
+    A Tree_node is a Node that also knows its position within an sgf_game.
 
-    Do not instantiate directly; retrieve from an Sgf_game or another Tree_node.
+    Do not instantiate directly; retrieve from an sgf_game or another Tree_node.
 
     A Tree_node is a list-like container of its children: it can be indexed,
     sliced, and iterated over like a list, and supports index().
@@ -346,7 +346,7 @@ class Tree_node(Node):
     A Tree_node with no children is treated as having truth value false.
 
     Public attributes (treat as read-only):
-      owner  -- the node's Sgf_game
+      owner  -- the node's sgf_game
       parent -- the nodes's parent Tree_node (None for the root node)
 
     """
@@ -464,7 +464,7 @@ class _Root_tree_node(Tree_node):
 
 
 class _Unexpanded_root_tree_node(_Root_tree_node):
-    """Variant of _Root_tree_node used with 'loaded' Sgf_games."""
+    """Variant of _Root_tree_node used with 'loaded' sgf_games."""
 
     def __init__(self, owner, coarse_tree):
         _Root_tree_node.__init__(self, coarse_tree.sequence[0], owner)
@@ -498,7 +498,7 @@ class _Unexpanded_root_tree_node(_Root_tree_node):
             yield Node(properties, presenter)
 
 
-class Sgf_game:
+class sgf_game:
     """An SGF game tree.
 
     The complete game tree is represented using Tree_nodes. The various methods
@@ -527,7 +527,7 @@ class Sgf_game:
         # To complete initialisation after this, you need to set 'root'.
         if not 1 <= size <= 26:
             raise ValueError("size out of range: %s" % size)
-        game = super(Sgf_game, cls).__new__(cls)
+        game = super(sgf_game, cls).__new__(cls)
         game.size = size
         game.presenter = sgf_properties.Presenter(size, encoding)
         return game
@@ -542,7 +542,7 @@ class Sgf_game:
 
     @classmethod
     def from_coarse_game_tree(cls, coarse_game, override_encoding=None):
-        """Alternative constructor: create an Sgf_game from the parser output.
+        """Alternative constructor: create an sgf_game from the parser output.
 
         coarse_game       -- Coarse_game_tree
         override_encoding -- encoding name, eg "UTF-8" (optional)
@@ -583,7 +583,7 @@ class Sgf_game:
 
     @classmethod
     def from_string(cls, s, override_encoding=None):
-        """Alternative constructor: read a single Sgf_game from a string.
+        """Alternative constructor: read a single sgf_game from a string.
 
         s -- 8-bit string
 

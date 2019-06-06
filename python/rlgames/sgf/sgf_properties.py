@@ -9,13 +9,13 @@ points.
 Adapted from gomill by Matthew Woodcraft, https://github.com/mattheww/gomill
 """
 
-from __future__ import absolute_import
+#from __future__ import absolute_import
 import codecs
 from math import isinf, isnan
 
 import six
 
-from dlgo.gosgf import sgf_grammar
+from rlgames.sgf import sgf_grammar
 from six.moves import range
 
 # In python 2, indexing a str gives one-character strings.
