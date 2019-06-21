@@ -122,13 +122,3 @@ TEST_F(TestGameState, TestWinner1){
 
   EXPECT_EQ(R::Player::Black, gs.winner());
 }
-
-TEST_F(TestGameState, TestCloneAndApplyMove1){
-  R::TTTGameState gs2 = gs.clone_and_apply_move(R::Move(R::M::Play, R::Pt(0, 1)));
-
-  s::vector<R::Move> moves1 = gs2.legal_moves();
-  s::vector<R::Move> moves2 = gs.legal_moves();
-
-  EXPECT_EQ(9, moves1.size());
-  EXPECT_EQ(10, moves2.size());
-}

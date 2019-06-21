@@ -133,17 +133,6 @@ public:
     mNPlayer = other_player(mNPlayer);
     return *this;
   }
-
-  TTTGameState clone_and_apply_move(Move move) const {
-    assert(is_over() == false);
-
-    TTTGameState s = *this;
-    if (move.mty == M::Play)
-      s.mBoard.place_stone(mNPlayer, move.mpt);
-    s.mPMove = move;
-    s.mNPlayer = other_player(mNPlayer);
-    return s;
-  }
 };
 
 } // rlgames
