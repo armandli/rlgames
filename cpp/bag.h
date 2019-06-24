@@ -55,7 +55,10 @@ public:
   citer cend() const { return mVec.cend(); }
 
   //modifiers
-  void push_back(const E& v){ mVec.push_back(v); }
+  uint push_back(const E& v){
+    mVec.push_back(v);
+    return mVec.size() - 1;
+  }
   void pop_back(){ mVec.pop_back(); }
   void clear() noexcept { mVec.clear(); }
 
@@ -71,18 +74,12 @@ public:
       return mVec.back();
     }
   }
-  //TODO: don't return anything
-  E pop(size_t idx){
+  void pop(size_t idx){
     assert(idx < mVec.size());
 
-    E copy = mVec[idx];
-    if (mVec.size() > 1){
+    if (mVec.size() > 1)
       mVec[idx] = mVec.back();
-      mVec.pop_back();
-    } else {
-      mVec.pop_back();
-    }
-    return copy;
+    mVec.pop_back();
   }
 
   template <class... Args>
