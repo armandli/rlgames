@@ -110,7 +110,9 @@ class Board(BoardBase):
       if replacement.num_liberties:
         self.replace_string_(replacement)
       else:
+        #TODO: confusing here:
         self.remove_string_(replacement)
+    #TODO: is this being done twice?
     for string in adj_oppo_color:
       if string.num_liberties == 0:
         self.remove_string_(string)
