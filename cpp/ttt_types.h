@@ -31,7 +31,7 @@ public:
 
   bool is_on_grid(Pt pt) const {
     if (pt.r < SZ && pt.c < SZ) return true;
-    else                            return false;
+    else                        return false;
   }
   Player get(Pt pt) const {
     assert(is_on_grid(pt));
@@ -95,6 +95,12 @@ public:
       return is_connected();
     default: assert(false);
     }
+  }
+
+  bool is_valid_move(Move move) const {
+    if (is_over())                                    return false;
+    if (move.mty == M::Pass || move.mty == M::Resign) return true;
+    return mBoard.get(move.mpt) == Player::Unknown;
   }
 
   s::vector<Move> legal_moves() const {
