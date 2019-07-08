@@ -2,11 +2,14 @@
 #define RLGAMES_TTT_TYPES
 
 #include <cassert>
+#include <cstring>
 #include <array>
 #include <vector>
+#include <ostream>
 
 #include <type_alias.h>
 #include <types.h>
+#include <game_base.h>
 
 namespace s = std;
 
@@ -15,13 +18,14 @@ namespace rlgames {
 template <ubyte SZ> struct TTTBoard_;
 
 template <>
-struct TTTBoard_<3> {
-  static constexpr size_t SZ = 3;
+struct TTTBoard_<3> : Board<TTTBoard_<3>> {
+  static constexpr uint SIZE = 3;
+  static constexpr uint IZ = SIZE * SIZE;
 private:
-  s::array<Player, SZ * SZ> mBoard;
+  s::array<Player, IZ> mBoard;
 public:
   TTTBoard_(){
-    memset(&mBoard[0], (ubyte)Player::Unknown, SZ * SZ * sizeof(ubyte));
+    s::memset(&mBoard[0], (ubyte)Player::Unknown, IZ * sizeof(ubyte));
   }
   TTTBoard_(const TTTBoard_& o): mBoard(o.mBoard) {}
   TTTBoard_& operator=(const TTTBoard_& o){
@@ -30,28 +34,53 @@ public:
   }
 
   bool is_on_grid(Pt pt) const {
-    if (pt.r < SZ && pt.c < SZ) return true;
-    else                        return false;
+    if (pt.r < SIZE && pt.c < SIZE) return true;
+    else                            return false;
   }
   Player get(Pt pt) const {
     assert(is_on_grid(pt));
 
-    return mBoard[index<SZ>(pt)];
+    return mBoard[index<SIZE>(pt)];
   }
   void place_stone(Player player, Pt pt){
     assert(is_on_grid(pt));
     assert(get(pt) == Player::Unknown);
 
-    mBoard[index<SZ>(pt)] = player;
+    mBoard[index<SIZE>(pt)] = player;
   }
   size_t size() const {
-    return SZ;
+    return SIZE;
+  }
+  s::ostream& print(s::ostream& out) const {
+    char bchar = 'B';
+    char wchar = 'W';
+
+    for (ubyte i = 0; i < SIZE; ++i){
+      for (ubyte j = 0; j < SIZE; ++j){
+        Player color = get(Pt(i, j));
+        switch (color){
+        case Player::Black: out << bchar; break;
+        case Player::White: out << wchar; break;
+        case Player::Unknown: out << ' '; break;
+        default: assert(false);
+        }
+      }
+      out << '\n';
+    }
+    return out;
   }
 };
 
+s::ostream& operator<<(s::ostream& out, const TTTBoard_<3>& board){
+  return board.print(out);
+}
+
 using TTTBoard = TTTBoard_<3>;
 
-class TTTGameState {
+struct TTTGameState : public GameState<TTTBoard, TTTGameState> {
+  static constexpr uint SIZE = 3;
+  static constexpr uint IZ = 9;
+private:
   TTTBoard mBoard;
   Player   mNPlayer;
   Move     mPMove;
@@ -84,6 +113,9 @@ public:
     return *this;
   }
 
+  const TTTBoard& board() const { return mBoard; }
+  Player next_player() const { return mNPlayer; }
+
   bool is_over() const {
     switch (mPMove.mty){
     case M::Unknown:
@@ -108,9 +140,9 @@ public:
 
     s::vector<Move> ret;
     ret.reserve(10);
-    for (size_t i = 0; i < TTTBoard::SZ * TTTBoard::SZ; ++i){
-      if (mBoard.get(point<TTTBoard::SZ>(i)) == Player::Unknown)
-        ret.push_back(Move(M::Play, point<TTTBoard::SZ>(i)));
+    for (size_t i = 0; i < TTTBoard::IZ; ++i){
+      if (mBoard.get(point<TTTBoard::SIZE>(i)) == Player::Unknown)
+        ret.push_back(Move(M::Play, point<TTTBoard::SIZE>(i)));
     }
     ret.push_back(Move(M::Pass));
     return ret;

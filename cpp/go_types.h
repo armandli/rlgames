@@ -14,17 +14,18 @@
 #include <type_alias.h>
 #include <types.h>
 #include <bag.h>
-#include <game_base.h>
 #include <zobrist_hash.h>
+#include <game_base.h>
 
 namespace s = std;
 
 namespace rlgames {
 
 template <ubyte SZ>
-class GoStr {
+struct GoStr {
+  static constexpr uint SIZE = SZ;
   static constexpr uint IZ = SZ * SZ;
-
+private:
   s::bitset<IZ> mStones;
   s::bitset<IZ> mLiberties;
   Player        mColor;
@@ -74,14 +75,15 @@ template <ubyte SZ>
   return GoStr<SZ>(stones, liberties, a.color());
 }
 
-template <ubyte SZ> class GoAreaScore;
+template <ubyte SZ> struct GoAreaScore;
 
 template <ubyte SZ>
-class GoBoard {
-  friend class GoAreaScore<SZ>;
+struct GoBoard : Board<GoBoard<SZ>> {
+  friend struct GoAreaScore<SZ>;
+  static constexpr uint SIZE = SZ;
   static constexpr uint IZ = SZ * SZ;
   static constexpr udyte EMPTY = 0xFFFFU;
-
+private:
   bag<GoStr<SZ>>      mStrings;
   s::array<udyte, IZ> mBoard;
   uint                mHash;
@@ -248,10 +250,11 @@ s::ostream& operator<<(s::ostream& out, const GoBoard<SZ>& board){
 
 // scoring using area rule: player pieces on board + territory + komi
 template <ubyte SZ>
-class GoAreaScore {
+struct GoAreaScore {
+  static constexpr uint SIZE = SZ;
   static constexpr uint IZ = SZ * SZ;
   static constexpr ubyte DAME = (ubyte) Player::White | (ubyte) Player::Black;
-
+private:
   const GoBoard<SZ>& mBoard;
   float              mBlackPoints;
   float              mBlackTerritory;
@@ -348,8 +351,10 @@ public:
 };
 
 template <ubyte SZ>
-class GoGameState {
+struct GoGameState : GameState<GoBoard<SZ>, GoGameState<SZ>> {
+  static constexpr uint SIZE = SZ;
   static constexpr uint IZ = SZ * SZ;
+
 protected:
   GoBoard<SZ>            mBoard;
   Player                 mNPlayer; //next player
@@ -386,6 +391,9 @@ public:
     mPPMove = o.mPPMove;
     return *this;
   }
+
+  const GoBoard<SZ>& board() const { return mBoard; }
+  Player next_player() const { return mNPlayer; }
 
   bool is_over() const {
     if (mPMove.mty == M::Unknown)  return false;

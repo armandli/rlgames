@@ -3,6 +3,8 @@
 
 #include <cassert>
 #include <array>
+#include <ostream>
+
 #include <type_alias.h>
 
 namespace s = std;
@@ -53,6 +55,42 @@ struct Move {
   Move(M ty, Pt p): mty(ty), mpt(p) {}
 };
 
+char index_to_char(ubyte index){
+  switch (index){
+  case 0:  return 'A';
+  case 1:  return 'B';
+  case 2:  return 'C';
+  case 3:  return 'D';
+  case 4:  return 'E';
+  case 5:  return 'F';
+  case 6:  return 'G';
+  case 7:  return 'H';
+  case 8:  return 'J';
+  case 9:  return 'K';
+  case 10: return 'L';
+  case 11: return 'M';
+  case 12: return 'N';
+  case 13: return 'O';
+  case 14: return 'P';
+  case 15: return 'Q';
+  case 16: return 'R';
+  case 17: return 'S';
+  case 18: return 'T';
+  default: assert(false);
+  }
+}
+
+s::ostream& operator<<(s::ostream& out, Move m){
+  switch (m.mty){
+  case M::Play:   out << index_to_char(m.mpt.c) << (int)m.mpt.r; break;
+  case M::Pass:   out << "pass"; break;
+  case M::Resign: out << "resigns"; break;
+  case M::Unknown:
+  default: assert(false);
+  }
+  return out;
+}
+
 enum class Player : ubyte {
   Black = 0x1,
   White = 0x2,
@@ -61,6 +99,16 @@ enum class Player : ubyte {
 
 [[gnu::always_inline]] Player other_player(Player player){
   return (Player)((ubyte)player ^ 0x3U);
+}
+
+s::ostream& operator<<(s::ostream& out, Player player){
+  switch (player){
+  case Player::Black: out << "Black"; break;
+  case Player::White: out << "White"; break;
+  case Player::Unknown:
+  default: assert(false);
+  }
+  return out;
 }
 
 } // rlgames
