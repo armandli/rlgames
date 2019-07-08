@@ -22,12 +22,15 @@ std::default_random_engine& get_default_random_engine(){
 
 void generate_file_include(s::fstream& out){
   out << "/* This file is auto-generated */\n";
+  out << "#ifndef RLGAMES_ZOBRIST_HASH\n";
+  out << "#define RLGAMES_ZOBRIST_HASH\n";
   out << "#include <cassert>\n";
   out << "\n";
   out << "#include <type_alias.h>\n";
   out << "#include <types.h>\n";
   out << "\n";
   out << "namespace rlgames {\n";
+  out << "\n";
 }
 
 unsigned get_next_value(s::uniform_int_distribution<unsigned>& dist, s::unordered_set<unsigned>& used){
@@ -42,11 +45,11 @@ void generate_hash_table(s::fstream& out){
   s::uniform_int_distribution<uint> dist(0x10000000U, 0xFFFFFFFFU);
   s::unordered_set<uint> used;
 
-  out << "uint zobrist_hash(Player player, Move move){\n";
+  out << "template <size_t SZ>\n";
+  out << "uint zobrist_hash(Player player, Pt pt){\n";
   out << "  assert(player != Player::Unknown);\n";
-  out << "  assert(move.mty == M::Play);\n";
   out << "\n";
-  out << "  uint key = index(move.mpt);\n";
+  out << "  uint key = index<SZ>(pt);\n";
   out << "  key |= (uint)player << 16;\n";
   out << "  switch (key){\n";
 
@@ -72,7 +75,11 @@ void generate_hash_table(s::fstream& out){
 }
 
 void generate_file_suffix(s::fstream& out){
+  out << "\n";
+  out << "constexpr uint EMPTY_BOARD = 0U;\n";
+  out << "\n";
   out << "} //rlgames\n";
+  out << "#endif//RLGAMES_ZOBRIST_HASH\n";
 }
 
 int main(int argc, char* argv[]){

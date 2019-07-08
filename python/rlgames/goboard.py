@@ -133,7 +133,7 @@ class GameState(GameStateBase):
     else:
       self.prevs = frozenset(previous.prevs | {(previous.nplayer, previous.board.zobrist_hash())})
     self.pmove = move
-  
+
   @property
   def situation(self):
     return (self.nplayer, self.board)

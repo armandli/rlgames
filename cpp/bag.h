@@ -83,8 +83,9 @@ public:
   }
 
   template <class... Args>
-  void emplace_back(Args&&... args){
+  uint emplace_back(Args&&... args){
     mVec.emplace_back(args...);
+    return mVec.size() - 1;
   }
 };
 
