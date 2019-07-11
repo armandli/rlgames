@@ -31,7 +31,7 @@ public:
       size_t sz = gs.board().size();
       initialize_cache(sz * sz);
     }
-    s::random_shuffle(s::begin(mCache), s::end(mCache), [](int i){ return s::rand() % i; }); //TODO: avoid the %
+    s::random_shuffle(s::begin(mCache), s::end(mCache), [](uint i){ return s::rand() % i; }); //TODO: avoid the %
     for (udyte index : mCache){
       Pt pt = point<Board::SIZE>(index);
       Move m(M::Play, pt);

@@ -694,3 +694,5 @@ TEST_F(TestGoAreaScore, TestWinner1){
 TEST_F(TestGoAreaScore, TestWinningMargin1){
   EXPECT_EQ(-14.5, scorer.winning_margin());
 }
+
+//TODO: test zobrist hash being correct after string removal

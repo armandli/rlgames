@@ -53,6 +53,12 @@ struct Move {
     assert(mty != M::Play);
   }
   Move(M ty, Pt p): mty(ty), mpt(p) {}
+  Move(const Move& o): mty(o.mty), mpt(o.mpt) {}
+  Move& operator=(const Move& o){
+    mty = o.mty;
+    mpt = o.mpt;
+    return *this;
+  }
 };
 
 char index_to_char(ubyte index){

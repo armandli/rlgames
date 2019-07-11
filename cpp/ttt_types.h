@@ -52,6 +52,7 @@ public:
     return SIZE;
   }
   s::ostream& print(s::ostream& out) const {
+    //TODO: make this look better
     char bchar = 'B';
     char wchar = 'W';
 
@@ -95,10 +96,17 @@ protected:
       rsum += mBoard.get(Pt(i, pt.c)) == player;
       csum += mBoard.get(Pt(pt.r, i)) == player;
       dfsum += mBoard.get(Pt(i, i)) == player;
-      drsum += mBoard.get(Pt(2 - i, 2 - i)) == player;
+      drsum += mBoard.get(Pt(i, 2 - i)) == player;
     }
     if (rsum == 3 || csum == 3 || dfsum == 3 || drsum == 3) return true;
     else                                                    return false;
+  }
+  uint empty_positions() const {
+    uint count = 0;
+    for (uint i = 0; i < IZ; ++i)
+      if (mBoard.get(point<SIZE>(i)) == Player::Unknown)
+        count++;
+    return count;
   }
 public:
   TTTGameState(): mBoard(), mNPlayer(Player::Black), mPMove(M::Unknown) {}
@@ -124,9 +132,11 @@ public:
     case M::Resign:
       return true;
     case M::Play:
-      return is_connected();
+      if (is_connected()) return true;
+      break;
     default: assert(false);
     }
+    return empty_positions() == 0U;
   }
 
   bool is_valid_move(Move move) const {
