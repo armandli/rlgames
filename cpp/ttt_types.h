@@ -123,6 +123,7 @@ public:
 
   const TTTBoard& board() const { return mBoard; }
   Player next_player() const { return mNPlayer; }
+  Move previous_move() const { return mPMove; }
 
   bool is_over() const {
     switch (mPMove.mty){

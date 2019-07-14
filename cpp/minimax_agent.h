@@ -49,6 +49,7 @@ protected:
     }
   }
 
+  //TODO: make sure recursion does not build up stack
   RRet recursive_minimax_search(GameState& gs, size_t depth){
     if (gs.is_over()){
       Player winner = gs.winner();
@@ -97,6 +98,7 @@ protected:
     }
   }
 
+  //TODO: make sure recursion does not build up stack
   /* Alpha-Beta Pruning: introduce new parameters alpha and beta.
    * alpha is the best value available to the maximizer from the parent to the root
    * beta is the best value available to the minimizer from the parent to the root

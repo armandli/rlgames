@@ -40,6 +40,9 @@ struct GameState {
   Player next_player() const {
     return static_cast<Sub*>(this)->next_player();
   }
+  Move previous_move() const {
+    return static_cast<Sub*>(this)->previous_move();
+  }
   bool is_over() const {
     return static_cast<Sub*>(this)->is_over();
   }
