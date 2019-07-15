@@ -7,7 +7,6 @@ class AreaScore:
   def __init__(self, board):
     self.board = board
     self.labels = dict()
-    self.remove_dead_strings_()
     self.create_territory_labels_()
     (self.bp, self.bt, self.wp, self.wt, self.dames) = self.score_()
     self.komi = 7.5
@@ -49,20 +48,6 @@ class AreaScore:
           elif len(boundary) == 2:
             for pti in tpoints:
               self.labels[pti] = 'dame'
-
-  def remove_dead_strings_(self):
-    self.create_territory_labels_()
-    for ri in range(1, self.board.sz + 1):
-      for ci in range(1, self.board.sz + 1):
-        string = self.board.get_go_string_(Point(ri, ci))
-        if string is None:
-          continue
-        eye_count = 0
-        for liberty in string.liberties:
-          if self.labels.get(liberty) == string.color:
-            eye_count += 1
-        if eye_count < 2:
-          self.board.remove_string_(string)
 
   def score_(self):
     wp = 0

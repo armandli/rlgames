@@ -61,6 +61,14 @@ struct Move {
   }
 };
 
+bool operator==(const Move& a, const Move& b){
+  return a.mty == b.mty && a.mpt == b.mpt;
+}
+
+bool operator!=(const Move& a, const Move& b){
+  return not operator==(a, b);
+}
+
 char index_to_char(ubyte index){
   switch (index){
   case 0:  return 'A';
@@ -115,6 +123,23 @@ s::ostream& operator<<(s::ostream& out, Player player){
   default: assert(false);
   }
   return out;
+}
+
+struct PlayerMove {
+  Player player;
+  Move   move;
+
+  PlayerMove() = default;
+  PlayerMove(Player p, Move m): player(p), move(m) {}
+  PlayerMove(const PlayerMove& o): player(o.player), move(o.move) {}
+};
+
+bool operator==(const PlayerMove& a, const PlayerMove& b){
+  return a.player == b.player && a.move == b.move;
+}
+
+bool operator!=(const PlayerMove& a, const PlayerMove& b){
+  return not operator==(a, b);
 }
 
 } // rlgames
