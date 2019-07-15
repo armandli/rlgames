@@ -74,6 +74,7 @@ TEST_F(TestBoard, TestSize1){
 class TestTTTGameState : public R::TTTGameState {
 public:
   TestTTTGameState() : TTTGameState() {}
+  TestTTTGameState(const R::TTTBoard& board, R::Player player, R::Move move): TTTGameState(board, player, move) {}
   using TTTGameState::is_connected;
 };
 
@@ -121,4 +122,61 @@ TEST_F(TestGameState, TestWinner1){
   gs.apply_move(R::Move(R::M::Play, R::Pt(1, 2)));
 
   EXPECT_EQ(R::Player::Black, gs.winner());
+}
+
+TEST_F(TestGameState, TestIsConnected1){
+  R::TTTBoard board;
+  board.place_stone(R::Player::Black, R::Pt(0, 2));
+  board.place_stone(R::Player::Black, R::Pt(1, 1));
+  board.place_stone(R::Player::Black, R::Pt(2, 0));
+  TestTTTGameState state(board, R::Player::White, R::Move(R::M::Play, R::Pt(2, 0)));
+
+  EXPECT_TRUE(state.is_over());
+}
+
+TEST_F(TestGameState, TestIsConnected2){
+  R::TTTBoard board;
+  board.place_stone(R::Player::Black, R::Pt(0, 0));
+  board.place_stone(R::Player::Black, R::Pt(1, 1));
+  board.place_stone(R::Player::Black, R::Pt(2, 2));
+  TestTTTGameState state(board, R::Player::White, R::Move(R::M::Play, R::Pt(2, 2)));
+
+  EXPECT_TRUE(state.is_over());
+}
+
+TEST_F(TestGameState, TestIsConnected3){
+  R::TTTBoard board;
+  board.place_stone(R::Player::Black, R::Pt(0, 1));
+  board.place_stone(R::Player::Black, R::Pt(1, 1));
+  board.place_stone(R::Player::Black, R::Pt(2, 1));
+  TestTTTGameState state(board, R::Player::White, R::Move(R::M::Play, R::Pt(2, 1)));
+
+  EXPECT_TRUE(state.is_over());
+}
+
+TEST_F(TestGameState, TestIsConnected4){
+  R::TTTBoard board;
+  board.place_stone(R::Player::Black, R::Pt(1, 0));
+  board.place_stone(R::Player::Black, R::Pt(1, 1));
+  board.place_stone(R::Player::Black, R::Pt(1, 2));
+  TestTTTGameState state(board, R::Player::White, R::Move(R::M::Play, R::Pt(1, 2)));
+
+  EXPECT_TRUE(state.is_over());
+}
+
+TEST_F(TestGameState, TestIsConnected5){
+  R::TTTBoard board;
+  board.place_stone(R::Player::Black, R::Pt(0, 0));
+  board.place_stone(R::Player::White, R::Pt(1, 1));
+  board.place_stone(R::Player::Black, R::Pt(0, 1));
+  board.place_stone(R::Player::White, R::Pt(0, 2));
+  board.place_stone(R::Player::Black, R::Pt(2, 0));
+  board.place_stone(R::Player::White, R::Pt(1, 0));
+  board.place_stone(R::Player::Black, R::Pt(1, 2));
+  board.place_stone(R::Player::White, R::Pt(2, 1));
+  board.place_stone(R::Player::Black, R::Pt(2, 2));
+  TestTTTGameState state(board, R::Player::White, R::Move(R::M::Play, R::Pt(2, 2)));
+
+  EXPECT_TRUE(state.is_over());
+  EXPECT_EQ(R::Player::Unknown, state.winner());
 }

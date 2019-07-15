@@ -31,11 +31,12 @@ public:
       size_t sz = gs.board().size();
       initialize_cache(sz * sz);
     }
-    s::random_shuffle(s::begin(mCache), s::end(mCache), [](int i){ return s::rand() % i; }); //TODO: avoid the %
+    IsPointAnEye<Board> is_point_an_eye;
+    s::random_shuffle(s::begin(mCache), s::end(mCache), [](uint i){ return s::rand() % i; }); //TODO: avoid the %
     for (udyte index : mCache){
       Pt pt = point<Board::SIZE>(index);
       Move m(M::Play, pt);
-      if (gs.is_valid_move(m) && (not is_point_an_eye<Board>(gs.board(), pt, gs.next_player())))
+      if (gs.is_valid_move(m) && (not is_point_an_eye(gs.board(), pt, gs.next_player())))
         return m;
     }
     return Move(M::Pass);

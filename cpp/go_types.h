@@ -394,6 +394,7 @@ public:
 
   const GoBoard<SZ>& board() const { return mBoard; }
   Player next_player() const { return mNPlayer; }
+  Move previous_move() const { return mPMove; }
 
   bool is_over() const {
     if (mPMove.mty == M::Unknown)  return false;
