@@ -31,38 +31,15 @@ struct SGFMetadata {
   float     komi;               //KM[F]
   s::string rule;               //RU[S]
   s::string result;             //RE[Player+F]
-
-  //following metadata can exist, but we ignore
-//  s::string date;               //DT[YYYY-MM-DD]
-//  uint      time;               //TM[K]
-//  s::string player_black_name;  //PB[S]
-//  s::string player_white_name;  //PW[S]
-//  s::string player_black_rank;  //BR[S]
-//  s::string player_white_rank;  //WR[S]
-//  s::string player_black_team;  //BT[S]
-//  s::string player_white_team;  //WT[S]
-//  s::string event;              //EV[S]
-//  uint      round;              //RO[K] number of tournament round
-//  s::string place;              //PC[S]
-//  s::string game_name;          //GN[S]
-//  s::string opening;            //ON[S]
-//  s::string game_comment;       //GC[S]
-//  s::string source;             //SO[S]
-//  s::string user;               //US[S] user who entered the game record
-//  s::string annotation;         //AN[S] name of person who made the annotation
-//  s::string copyright;          //CP[S]
 };
 
 struct SGFData {
   SGFMetadata              metadata;
-  s::vector<r::PlayerMove> moves;           //W[ab] for white move Pt(0, 1) and B[ef] for black move Pt(5, 6)
-
-  //ignore territory for now
-//  s::vector<r::Pt>         black_territory; //TB(*[xy])
-//  s::vector<r::Pt>         white_territory; //TW(*[xy])
+  s::vector<r::PlayerMove> moves;    //W[ab] for white move Pt(0, 1) and B[ef] for black move Pt(5, 6)
 };
 
 class SGFFileReader {
+protected:
   using RawData = s::vector<s::vector<s::vector<s::string>>>;
 
   struct SGFGrammar: public qi::grammar<s::string::const_iterator, RawData(), qi::space_type> {
@@ -114,38 +91,41 @@ class SGFFileReader {
       if (clause[0] == "FF"){
         if (clause.size() == 2){
           try {
-            uint version = s::stou(clause[1]);
+            uint version = s::stoul(clause[1]);
             ret.metadata.ff_version = version;
           } catch (const s::invalid_argument& err){
             s::cerr << "Invalid FF version number " << clause[1] << ". Version ignored" << s::endl;
-            s::cerr << err << s::endl;
+            s::cerr << err.what() << s::endl;
           }
         }
       } else if (clause[0] == "GM"){
         if (clause.size() == 2){
           try {
-            uint game_number = s::stou(clause[1]);
+            uint game_number = s::stoul(clause[1]);
             ret.metadata.game_number = game_number;
           } catch (const s::invalid_argument& err){
             s::cerr << "Invalid GM number " << clause[1] << ". Number ignored" << s::endl;
+            s::cerr << err.what() << s::endl;
           }
         }
       } else if (clause[0] == "SZ"){
         if (clause.size() == 2){
           try {
-            uint board_size = s::stou(clause[1]);
+            uint board_size = s::stoul(clause[1]);
             ret.metadata.board_size = board_size;
           } catch (const s::invalid_argument& err){
             s::cerr << "Invalid SZ size " << clause[1] << ". Number ignored" << s::endl;
+            s::cerr << err.what() << s::endl;
           }
         }
       } else if (clause[0] == "HA"){
         if (clause.size() == 2){
           try {
-            uint handicap = s::stou(clause[1]);
+            uint handicap = s::stoul(clause[1]);
             ret.metadata.handicap = handicap;
           } catch (const s::invalid_argument& err){
             s::cerr << "Invalid HA handicap number " << clause[1] << ". Number ignored" << s::endl;
+            s::cerr << err.what() << s::endl;
           }
         }
 
@@ -156,6 +136,7 @@ class SGFFileReader {
             ret.metadata.komi = komi;
           } catch (const s::invalid_argument& err){
             s::cerr << "Invalid KM komi value " << clause[1] << ". Number ignored" << s::endl;
+            s::cerr << err.what() << s::endl;
           }
         }
       } else if (clause[0] == "RU"){
@@ -168,9 +149,9 @@ class SGFFileReader {
     }
   }
 
-  r::Pt mstr_to_pt(const s::string& mstr){
+  r::Move mstr_to_pt(const s::string& mstr){
     //TODO: make sure first character represent row and second represent column
-    return r::Pt(mstr[0] - 'a', mstr[1] - 'a');
+    return r::Move(r::M::Play, r::Pt(mstr[0] - 'a', mstr[1] - 'a'));
   }
 
   void read_moves(SGFData& ret, const RawData& content){
@@ -178,26 +159,26 @@ class SGFFileReader {
       for (const s::vector<s::string>& clause : content[i]){
         if (clause.size() == 0) continue;
 
-        if (clause[0] == 'B'){
-          if (clause.size() < 2){
-            s::cerr << "Unexpected Black Move Clause with no move content detected. Error ignored." << s::endl;
+        if (clause[0] == "B"){
+          if (clause.size() == 1){
+            ret.moves.push_back(r::PlayerMove(r::Player::Black, r::Move(r::M::Pass)));
             continue;
           }
           if (clause[1].size() != 2){
             s::cerr << "Unexpected move description: " << clause[1] << ". move ignored." << s::endl;
             continue;
           }
-          ret.moves.push_back(PlayerMove(r::Player::Black, mstr_to_pt(clause[1])));
-        } else if (clause[1] == 'W'){
-          if (clause.size() < 2){
-            s::cerr << "Unexpected White Move Clause with no move content detected. Error ignored." << s::endl;
+          ret.moves.push_back(r::PlayerMove(r::Player::Black, mstr_to_pt(clause[1])));
+        } else if (clause[0] == "W"){
+          if (clause.size() == 1){
+            ret.moves.push_back(r::PlayerMove(r::Player::White, r::Move(r::M::Pass)));
             continue;
           }
           if (clause[1].size() != 2){
             s::cerr << "Unexpected move description: " << clause[1] << ". move ignored." << s::endl;
             continue;
           }
-          ret.moves.push_back(PlayerMove(r::Player::White, mstr_to_pt(clause[1])));
+          ret.moves.push_back(r::PlayerMove(r::Player::White, mstr_to_pt(clause[1])));
         }
       }
     }

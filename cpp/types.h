@@ -18,6 +18,14 @@ struct Pt {
   Pt(ubyte r, ubyte c): r(r), c(c) {}
 };
 
+bool operator==(Pt a, Pt b){
+  return a.r == b.r && a.c == b.c;
+}
+
+bool operator!=(Pt a, Pt b){
+  return not operator==(a, b);
+}
+
 using Neighbours = s::array<Pt, 4>; 
 
 template <uint SZ>
@@ -62,7 +70,14 @@ struct Move {
 };
 
 bool operator==(const Move& a, const Move& b){
-  return a.mty == b.mty && a.mpt == b.mpt;
+  switch (a.mty){
+  case M::Play:
+    return a.mty == b.mty && a.mpt == b.mpt;
+  case M::Pass:
+  case M::Resign:
+  case M::Unknown:
+    return a.mty == b.mty;
+  }
 }
 
 bool operator!=(const Move& a, const Move& b){
@@ -129,7 +144,7 @@ struct PlayerMove {
   Player player;
   Move   move;
 
-  PlayerMove() = default;
+  PlayerMove(): player(Player::Unknown), move(M::Unknown) {}
   PlayerMove(Player p, Move m): player(p), move(m) {}
   PlayerMove(const PlayerMove& o): player(o.player), move(o.move) {}
 };
