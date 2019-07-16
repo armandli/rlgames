@@ -10,7 +10,7 @@ namespace R = rlgames;
 
 int main(){
   R::TTTGameState state;
-  R::MCTSAgent<R::TTTBoard, R::TTTGameState> agent(360000, 1., 128);
+  R::MCTSAgent<R::TTTBoard, R::TTTGameState> agent(360'000, 1., 128);
 
   while (not state.is_over()){
     usleep(1000);
