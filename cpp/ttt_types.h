@@ -52,11 +52,11 @@ public:
     return SIZE;
   }
   s::ostream& print(s::ostream& out) const {
-    //TODO: make this look better
-    char bchar = 'B';
-    char wchar = 'W';
+    char bchar = 'x';
+    char wchar = 'o';
 
     for (ubyte i = 0; i < SIZE; ++i){
+      out << (int)i << ' ';
       for (ubyte j = 0; j < SIZE; ++j){
         Player color = get(Pt(i, j));
         switch (color){
@@ -65,9 +65,11 @@ public:
         case Player::Unknown: out << ' '; break;
         default: assert(false);
         }
+        out << ' ';
       }
       out << '\n';
     }
+    out << "  A B C\n";
     return out;
   }
 };

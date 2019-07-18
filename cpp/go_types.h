@@ -160,13 +160,15 @@ public:
 
     mHash ^= zobrist_hash<SZ>(player, pt);
 
+    Player oplayer = other_player(player);
+    Neighbours ns = neighbours(pt);
     s::bitset<IZ> liberties;
     s::array<udyte, 4> adj_same_color;
     s::array<udyte, 4> adj_oppo_color;
     decltype(s::begin(adj_same_color)) adj_same_iter = s::begin(adj_same_color);
     decltype(s::begin(adj_oppo_color)) adj_oppo_iter = s::begin(adj_oppo_color);
 
-    for (Pt neighbour : neighbours(pt)){
+    for (Pt neighbour : ns){
       if (not is_on_grid(neighbour)) continue;
 
       uint sidx = get_string_idx(neighbour);
@@ -174,13 +176,9 @@ public:
         liberties.set(index<SZ>(neighbour));
       else if (mStrings[sidx].color() == player)
         *(adj_same_iter++) = sidx;
-      else
-        *(adj_oppo_iter++) = sidx;
     }
     s::sort(s::begin(adj_same_color), adj_same_iter, s::greater<uint>());
-    s::sort(s::begin(adj_oppo_color), adj_oppo_iter, s::greater<uint>());
     adj_same_iter = s::unique(s::begin(adj_same_color), adj_same_iter);
-    adj_oppo_iter = s::unique(s::begin(adj_oppo_color), adj_oppo_iter);
 
     //merge all same color string together
     s::bitset<IZ> stones; stones.set(index<SZ>(pt));
@@ -196,6 +194,16 @@ public:
     udyte new_index = mStrings.push_back(new_string);
     replace_string(new_string, new_index);
 
+    for (Pt neighbour : ns){
+      if (not is_on_grid(neighbour)) continue;
+
+      uint sidx = get_string_idx(neighbour);
+      if (sidx != EMPTY && mStrings[sidx].color() == oplayer)
+        *(adj_oppo_iter++) = sidx;
+    }
+    s::sort(s::begin(adj_oppo_color), adj_oppo_iter, s::greater<uint>());
+    adj_oppo_iter = s::unique(s::begin(adj_oppo_color), adj_oppo_iter);
+
     //remove opponent dead string
     for (decltype(s::begin(adj_oppo_color)) it = s::begin(adj_oppo_color); it != adj_oppo_iter; ++it){
       GoStr<SZ>& string = mStrings[*it];
@@ -208,22 +216,34 @@ public:
   }
 
   s::ostream& print(s::ostream& out) const {
-    char bchar = 'B';
-    char wchar = 'W';
+    char bchar = 'x';
+    char wchar = 'o';
 
     for (ubyte i = 0; i < SZ; ++i){
+      if (i < 10) out << ' ';
+      out << (int)i;
+      out << ' ';
       for (ubyte j = 0; j < SZ; ++j){
         udyte idx = get_string_idx(Pt(i, j));
         if (idx == EMPTY)
-          out << " ";
+          out << '.';
         else {
           Player color = mStrings[idx].color();
           if (color == Player::Black) out << bchar;
           else                        out << wchar;
         }
+        out << ' ';
       }
       out << "\n";
     }
+    out << "  ";
+    char label = 'A';
+    for (ubyte i = 0; i < SZ; ++i){
+      if (label == 'I') label++;
+      out << ' ' << label;
+      label++;
+    }
+    out << '\n';
     return out;
   }
 

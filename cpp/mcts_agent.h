@@ -40,6 +40,7 @@ protected:
     s::iota(mCache.begin(), mCache.end(), 0);
   }
 
+  //TODO: mc_play is more expensive than number of MCTS nodes used, make mc_play cheaper
   float mc_play(GameState& gs){
     IsPointAnEye<Board> is_point_an_eye;
     float score = TIE_SCORE;
@@ -47,14 +48,18 @@ protected:
       GameState play_state = gs;
       while (not play_state.is_over()){
         s::random_shuffle(s::begin(mCache), s::end(mCache), [](int k){ return s::rand() % k; });
+        bool found_move = false;
         for (udyte index : mCache){
           Pt pt = point<Board::SIZE>(index);
           Move m(M::Play, pt);
           if (play_state.is_valid_move(m) && (not is_point_an_eye(play_state.board(), pt, play_state.next_player()))){
             play_state.apply_move(m);
+            found_move = true;
             break;
           }
         }
+        if (not found_move)
+          play_state.apply_move(Move(M::Pass));
       }
       switch (play_state.winner()){
       case Player::Black:   score += MAX_SCORE; break;
@@ -196,7 +201,7 @@ public:
       size_t sz = gs.board().size();
       initialize_cache(sz * sz);
     }
-    BufferAllocator<MCTSNode> arena(mMaxExpand);
+    BufferAllocator<MCTSNode> arena(mMaxExpand + 1);
     MCTSNode* root = arena.allocate(MCTSNode(gs));
 
     assert(root != nullptr);

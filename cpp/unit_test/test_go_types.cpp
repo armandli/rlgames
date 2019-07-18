@@ -696,3 +696,4 @@ TEST_F(TestGoAreaScore, TestWinningMargin1){
 }
 
 //TODO: test zobrist hash being correct after string removal
+//TODO: test board.place_stone() more thoroughly
