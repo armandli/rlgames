@@ -20,7 +20,7 @@ class bag {
 
 public:
   bag() = default;
-  bag(const bag& o) = default;
+  bag(const bag& o): mVec(o.mVec) {}
   bag(const s::vector<E>& v): mVec(v) {}
   bag& operator=(const bag& o){
     //TODO: proper implementation
