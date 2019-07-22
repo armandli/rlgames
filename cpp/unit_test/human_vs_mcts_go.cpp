@@ -11,7 +11,6 @@
 namespace s = std;
 namespace R = rlgames;
 
-//constexpr ubyte SZ = 19;
 constexpr ubyte SZ = 9;
 
 R::Move parse_human_move(){
@@ -57,7 +56,7 @@ R::Move parse_human_move(){
 
 int main(){
   R::GoGameState<SZ> state;
-  R::MCTSAgent<R::GoBoard<SZ>, R::GoGameState<SZ>> agent(531441, 1., 4);
+  R::MCTSAgent<R::GoBoard<SZ>, R::GoGameState<SZ>> agent(7000, 1., 32);
   R::Player turn = R::Player::Black;
 
   while (not state.is_over()){

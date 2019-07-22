@@ -27,6 +27,11 @@ public:
     mVec = o.mVec;
     return *this;
   }
+  bag(bag&& o) noexcept : mVec(s::move(o.mVec)) {}
+  bag& operator=(bag&& o) noexcept {
+    mVec = s::move(o.mVec);
+    return *this;
+  }
 
   //capacity
   size_t size() const { return mVec.size(); }

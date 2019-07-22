@@ -19,8 +19,6 @@ namespace s = std;
 
 namespace rlgames {
 
-//TODO: make MCTS more optimized
-//TODO: find faster random number generator method
 //TODO: find faster method than keep doing modulo for random number generation
 //TODO: monitor and avoid object copying for GameState, MCTSNode
 
@@ -40,7 +38,6 @@ protected:
     s::iota(mCache.begin(), mCache.end(), 0);
   }
 
-  //TODO: mc_play is more expensive than number of MCTS nodes used, make mc_play cheaper
   float mc_play(GameState& gs){
     IsPointAnEye<Board> is_point_an_eye;
     float score = TIE_SCORE;
@@ -98,31 +95,37 @@ protected:
     s::set<MCTSNode*>    ptn_children; //all expanded children that has unexplored children
 
     MCTSNode() = default;
-    explicit MCTSNode(GameState& gs, MCTSNode* parent = nullptr):
-      gs(gs), parent(parent), qvalue(0.), ncount(0), unp_children(gs.legal_moves()) {
+    explicit MCTSNode(GameState&& gs, MCTSNode* parent = nullptr):
+      gs(s::move(gs)), parent(parent), qvalue(0.), ncount(0), unp_children(gs.legal_moves()) {
     }
-    MCTSNode(const MCTSNode& o):
-      gs(o.gs), parent(o.parent), qvalue(o.qvalue), ncount(o.ncount), unp_children(o.unp_children), children(o.children), ptn_children(o.ptn_children) {}
-    MCTSNode& operator=(const MCTSNode& o){
-      gs           = o.gs;
-      parent       = o.parent;
-      qvalue       = o.qvalue;
-      ncount       = o.ncount;
-      unp_children = o.unp_children;
-      children     = o.children;
-      ptn_children = o.ptn_children;
+    MCTSNode(MCTSNode&& o) noexcept :
+      gs(s::move(o.gs)), parent(o.parent), qvalue(o.qvalue), ncount(o.ncount), unp_children(s::move(o.unp_children)), children(s::move(o.children)), ptn_children(s::move(o.ptn_children)) {}
+    MCTSNode& operator=(MCTSNode&& o) noexcept {
+      gs = s::move(o.gs);
+      parent = o.parent;
+      qvalue = o.qvalue;
+      ncount = o.ncount;
+      unp_children = s::move(o.unp_children);
+      children = s::move(o.children);
+      ptn_children = s::move(o.ptn_children);
       return *this;
     }
 
-    //TODO: reformulate MCTSNode methods to make it easier to use
-    void add_child(MCTSNode* node, size_t index){
+    void update_new_child_state(MCTSNode* node, size_t index){
       assert(node != nullptr);
+
       unp_children.pop(index);
       children.push_back(node);
-      ptn_children.insert(node);
+
+      if (not node->gs.is_over()){
+        ptn_children.insert(node);
+      } else if (parent && unp_children.size() == 0 && ptn_children.size() == 0){
+        parent->remove_child(this);
+      }
     }
     void remove_child(MCTSNode* node){
       assert(node != nullptr);
+
       ptn_children.erase(node);
       if (parent && unp_children.size() == 0 && ptn_children.size() == 0)
         parent->remove_child(this);
@@ -143,10 +146,10 @@ protected:
     explicit BufferAllocator(size_t sz): index(0U) {
       objects.resize(sz);
     }
-    T* allocate(const T& obj){
+    T* allocate(T&& obj) noexcept {
       assert(index < objects.size());
 
-      objects[index] = obj;
+      objects[index] = s::move(obj);
       size_t prev_index = index;
       index++;
       return &objects[prev_index];
@@ -156,15 +159,11 @@ protected:
   //TODO: make sure the recursion does not build up stack
   MCTSNode* recursive_uct(MCTSNode* node, BufferAllocator<MCTSNode>& arena){
     if (node->unp_children.size() > 0){
-      //TODO: why so complicated here?
       uint rand_idx = s::rand() % node->unp_children.size();
-      Move new_move = node->unp_children[rand_idx];
       GameState new_state = node->gs;
-      new_state.apply_move(new_move);
-      MCTSNode* new_node = arena.allocate(MCTSNode(new_state, node));
-      node->add_child(new_node, rand_idx);
-      if (new_state.is_over())
-        node->remove_child(new_node);
+      new_state.apply_move(node->unp_children[rand_idx]);
+      MCTSNode* new_node = arena.allocate(MCTSNode(s::move(new_state), node));
+      node->update_new_child_state(new_node, rand_idx);
       return new_node;
     } else {
       s::vector<MCTSNode*> best_children;
@@ -197,12 +196,13 @@ public:
   }
 
   Move select_move(GameState& gs){
+    GameState gs_copy = gs; //explicit copy to reduce total copying
     if (mCache.size() == 0){
-      size_t sz = gs.board().size();
+      size_t sz = gs_copy.board().size();
       initialize_cache(sz * sz);
     }
     BufferAllocator<MCTSNode> arena(mMaxExpand + 1);
-    MCTSNode* root = arena.allocate(MCTSNode(gs));
+    MCTSNode* root = arena.allocate(MCTSNode(s::move(gs_copy)));
 
     assert(root != nullptr);
 

@@ -40,6 +40,13 @@ public:
     mColor = o.mColor;
     return *this;
   }
+  GoStr(GoStr&& o) noexcept : mStones(s::move(o.mStones)), mLiberties(s::move(o.mLiberties)), mColor(o.mColor) {}
+  GoStr& operator=(GoStr&& o) noexcept {
+    mStones = s::move(o.mStones);
+    mLiberties = s::move(o.mLiberties);
+    mColor = o.mColor;
+    return *this;
+  }
 
   Player color() const { return mColor; }
   const s::bitset<IZ>& stones() const { return mStones; }
@@ -133,6 +140,13 @@ public:
   GoBoard& operator=(const GoBoard& o){
     mStrings = o.mStrings;
     mBoard   = o.mBoard;
+    mHash    = o.mHash;
+    return *this;
+  }
+  GoBoard(GoBoard&& o) noexcept : mStrings(s::move(o.mStrings)), mBoard(s::move(o.mBoard)), mHash(o.mHash) {}
+  GoBoard& operator=(GoBoard&& o) noexcept {
+    mStrings = s::move(o.mStrings);
+    mBoard   = s::move(o.mBoard);
     mHash    = o.mHash;
     return *this;
   }
@@ -239,7 +253,6 @@ public:
     out << "  ";
     char label = 'A';
     for (ubyte i = 0; i < SZ; ++i){
-      if (label == 'I') label++;
       out << ' ' << label;
       label++;
     }
@@ -364,6 +377,7 @@ public:
     else
       return Player::White;
   }
+
   float winning_margin(){
     if (not is_winner_computed()) compute_winner();
     return mBlackPoints - mWhitePoints + mBlackTerritory - mWhiteTerritory - mKomi;
@@ -411,6 +425,15 @@ public:
     mPPMove = o.mPPMove;
     return *this;
   }
+  GoGameState(GoGameState&& o) noexcept : mBoard(s::move(o.mBoard)), mNPlayer(o.mNPlayer), mPMove(o.mPMove), mPPMove(o.mPPMove), mHistory(s::move(o.mHistory)) {}
+  GoGameState& operator=(GoGameState&& o) noexcept {
+    mBoard = s::move(o.mBoard);
+    mNPlayer = o.mNPlayer;
+    mPMove = o.mPMove;
+    mPPMove = o.mPPMove;
+    mHistory = s::move(o.mHistory);
+    return *this;
+  }
 
   const GoBoard<SZ>& board() const { return mBoard; }
   Player next_player() const { return mNPlayer; }
@@ -447,7 +470,6 @@ public:
   Player winner(){
     if (not is_over()) return Player::Unknown;
     if (mPMove.mty == M::Resign) return mNPlayer;
-    //GoAreaScore modifies the board
     GoAreaScore<SZ> scorer(mBoard);
     return scorer.winner();
   }
