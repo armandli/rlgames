@@ -312,7 +312,8 @@ protected:
             coloring |= (ubyte)color;
           }
         }
-        return coloring;
+        if (coloring == 0) return DAME;
+        else               return coloring;
       }
     private:
       const GoBoard<SZ>& board;
