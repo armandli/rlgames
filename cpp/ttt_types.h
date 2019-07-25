@@ -32,6 +32,11 @@ public:
     mBoard = o.mBoard;
     return *this;
   }
+  TTTBoard_(TTTBoard_&& o) noexcept : mBoard(s::move(o.mBoard)) {}
+  TTTBoard_& operator=(TTTBoard_&& o) noexcept {
+    mBoard = s::move(o.mBoard);
+    return *this;
+  }
 
   bool is_on_grid(Pt pt) const {
     if (pt.r < SIZE && pt.c < SIZE) return true;
@@ -118,6 +123,14 @@ public:
     mBoard(o.mBoard), mNPlayer(o.mNPlayer), mPMove(o.mPMove) {}
   TTTGameState& operator=(const TTTGameState& o){
     mBoard = o.mBoard;
+    mNPlayer = o.mNPlayer;
+    mPMove = o.mPMove;
+    return *this;
+  }
+  TTTGameState(TTTGameState&& o) noexcept :
+    mBoard(s::move(o.mBoard)), mNPlayer(o.mNPlayer), mPMove(o.mPMove) {}
+  TTTGameState& operator=(TTTGameState&& o) noexcept {
+    mBoard = s::move(o.mBoard);
     mNPlayer = o.mNPlayer;
     mPMove = o.mPMove;
     return *this;

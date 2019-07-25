@@ -10,7 +10,7 @@ namespace rlgames {
 
 template <typename Board, typename GameState, typename Sub>
 struct AgentBase {
-  Move select_move(GameState& gs){
+  Move select_move(const GameState& gs){
     return static_cast<Sub*>(this)->select_move(gs);
   }
 };

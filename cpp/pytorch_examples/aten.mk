@@ -1,15 +1,15 @@
-app=human_vs_mcts_go
+app=aten
 
-SOURCES=human_vs_mcts_go.cpp
+SOURCES=aten.cpp
 
 OBJECTS=$(SOURCES:.cpp=.o)
 
 all: $(app)
 
-DEBUG=-g
-INCLUDES=-I./ -I../
+DEBUG=
+INCLUDES=-I./ -I/usr/include/
 OPT=-O3
-LIBS=-lpthread
+LIBS=-lc10 -lcaffe2 -ltorch
 DEFINES=
 
 CXXFLAGS=-std=c++17 -MD -pedantic -pedantic-errors -O3 -Wall -Wextra $(DEFINES) $(INCLUDES) $(OPT) $(DEBUG)

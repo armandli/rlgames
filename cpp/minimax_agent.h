@@ -50,7 +50,7 @@ protected:
   }
 
   //TODO: make sure recursion does not build up stack
-  RRet recursive_minimax_search(GameState& gs, size_t depth){
+  RRet recursive_minimax_search(const GameState& gs, size_t depth){
     if (gs.is_over()){
       Player winner = gs.winner();
       switch (winner){
@@ -110,7 +110,7 @@ protected:
    * its parent (maximizer) has higher value than the minimum value found
    * current node, we no longer need to explore downstream.
    */
-  RRet recursive_alpha_beta_minimax_search(GameState& gs, size_t depth, float alpha, float beta){
+  RRet recursive_alpha_beta_minimax_search(const GameState& gs, size_t depth, float alpha, float beta){
     if (gs.is_over()){
       Player winner = gs.winner();
       switch (winner){
@@ -167,7 +167,7 @@ public:
     s::srand(unsigned(s::time(0)));
   }
 
-  Move select_move(GameState& gs){
+  Move select_move(const GameState& gs){
     if constexpr (ABP){
       RRet ret = recursive_alpha_beta_minimax_search(gs, mDepth, MIN_SCORE, MAX_SCORE);
       return ret.move;
