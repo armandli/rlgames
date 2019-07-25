@@ -157,7 +157,6 @@ protected:
     }
   };
 
-  //TODO: make sure the recursion does not build up stack
   MCTSNode* recursive_uct(MCTSNode* node, BufferAllocator<MCTSNode>& arena){
     if (node->unp_children.size() > 0){
       uint rand_idx = mGen() % node->unp_children.size();
