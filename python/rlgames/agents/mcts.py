@@ -7,8 +7,6 @@ from rlgames.agents.helper import is_point_an_eye
 from rlgames.game_base import Move
 from rlgames.common_types import Player, Point
 
-#TODO: add resign policy, when pct winning is lower than 10%
-
 class MCTSNode:
   def __init__(self, game_state, parent=None, move=None):
     self.game_state = game_state
