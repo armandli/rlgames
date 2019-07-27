@@ -9,7 +9,7 @@ setup(
   packages=find_packages(),
   package_data={},
   data_files=[],
-  install_requires=[],
+  install_requires=['numpy', 'keras', 'tensorflow', 'tensorflow-gpu'],
   entry_points={},
-  scripts=['rlgames/bot_vs_bot.py', 'rlgames/human_vs_bot.py', 'rlgames/bot_vs_bot_ttt.py', 'rlgames/human_vs_bot_ttt.py']
+  scripts=['rlgames/bot_vs_bot.py', 'rlgames/human_vs_bot.py', 'rlgames/bot_vs_bot_ttt.py', 'rlgames/human_vs_bot_ttt.py', 'rlgames/generate_mcts_games.py']
 )

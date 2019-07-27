@@ -14,6 +14,7 @@ namespace s = std;
 
 namespace rlgames {
 
+//TODO: figure out if the template Board is really needed or not
 template <typename Board, typename GameState>
 class RandomAgent : public AgentBase<Board, GameState, RandomAgent<Board, GameState>> {
   s::vector<udyte> mCache;

@@ -19,6 +19,7 @@ struct Board {
   void place_stone(Player player, Pt pt){
     static_cast<Sub*>(this)->place_stone(player, pt);
   }
+  //TODO: make this static method
   size_t size() const {
     return static_cast<Sub*>(this)->size();
   }
