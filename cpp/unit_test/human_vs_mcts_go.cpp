@@ -17,6 +17,7 @@ namespace R = rlgames;
 
 constexpr ubyte SZ = 9;
 
+//TODO: BUG: the convension for board origin is button left, not top left
 R::Move parse_human_move(){
   R::Move ret(R::M::Pass);
   s::string input;
