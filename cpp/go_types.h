@@ -229,6 +229,7 @@ public:
     //happened for rule checking
   }
 
+  //TODO: BUG: board should be printed with origin at the button left, not top left
   s::ostream& print(s::ostream& out) const {
     char bchar = 'x';
     char wchar = 'o';

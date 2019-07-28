@@ -8,6 +8,7 @@
 #include <vector>
 #include <fstream>
 #include <iostream>
+#include <iomanip>
 #include <stdexcept>
 
 #include <boost/spirit/include/qi.hpp>
@@ -160,7 +161,7 @@ protected:
         if (clause.size() == 0) continue;
 
         if (clause[0] == "B"){
-          if (clause.size() == 1){
+          if (clause[1].size() == 0){
             ret.moves.push_back(r::PlayerMove(r::Player::Black, r::Move(r::M::Pass)));
             continue;
           }
@@ -170,7 +171,7 @@ protected:
           }
           ret.moves.push_back(r::PlayerMove(r::Player::Black, mstr_to_pt(clause[1])));
         } else if (clause[0] == "W"){
-          if (clause.size() == 1){
+          if (clause[1].size() == 0){
             ret.moves.push_back(r::PlayerMove(r::Player::White, r::Move(r::M::Pass)));
             continue;
           }

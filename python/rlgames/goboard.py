@@ -75,14 +75,14 @@ class Board(BoardBase):
     for pt in string.stones:
       self.grid[pt] = string
 
-  def place_stone(self, player, pt):
-    assert self.is_on_grid(pt)
-    assert self.grid.get(pt) is None
+  def place_stone(self, player, point):
+    assert self.is_on_grid(point)
+    assert self.grid.get(point) is None
     #small set, use list
     adj_same_color = []
     adj_oppo_color = []
     liberties = []
-    for neighbour in pt.neighbours():
+    for neighbour in point.neighbours():
       if not self.is_on_grid(neighbour):
         continue
       neighbour_string = self.grid.get(neighbour)
@@ -94,27 +94,20 @@ class Board(BoardBase):
       else:
         if neighbour_string not in adj_oppo_color:
           adj_oppo_color.append(neighbour_string)
-    new_string = GoString(player, [pt], liberties)
+    new_string = GoString(player, [point], liberties)
+
     for string in adj_same_color:
       new_string = new_string.merge_with(string)
     for pnt in new_string.stones:
       self.grid[pnt] = new_string
-    self.hash ^= zobrist.HASH_CODE[pt, player]
-    #self capture is considered illegal move, we don't check
-    #this is consistent in most rule sets
-    #it is also important to remove opponent's captured string
-    #before removing your own, otherwise it breaks correct
-    #play
+
+    self.hash ^= zobrist.HASH_CODE[point, player]
+
     for string in adj_oppo_color:
-      replacement = string.without_liberty(pt)
+      replacement = string.without_liberty(point)
       if replacement.num_liberties:
-        self.replace_string_(replacement)
+        self.replace_string_(string.without_liberty(point))
       else:
-        #TODO: confusing here:
-        self.remove_string_(replacement)
-    #TODO: is this being done twice?
-    for string in adj_oppo_color:
-      if string.num_liberties == 0:
         self.remove_string_(string)
 
   def __deepcopy__(self, memodict={}):
