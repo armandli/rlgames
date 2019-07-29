@@ -18,7 +18,8 @@ def parse_args():
   parser.add_argument('--encoder', '-e', type=str, default='oneplane')
   parser.add_argument('--model-size', '-m', type=str, default='small')
   parser.add_argument('--epoch', '-p', type=int, default=100)
-  parser.add_argument('--batchsize', '-b', type=int, default=32)
+  parser.add_argument('--batchsize', '-b', type=int, default=64)
+  parser.add_argument('--optimizer', '-r', type=str, default='sgd')
   parser.add_argument('--output', '-o', type=str,
           default='checkpoints/imitation_model')
   args = parser.parse_args()
@@ -41,8 +42,7 @@ def load_model(args, encoder):
   for layer in network_layers:
     model.add(layer)
   model.add(Dense(args.board_size * args.board_size, activation='softmax'))
-  model.compile(loss='categorical_crossentropy', optimizer='sgd',
-          metrics=['accuracy'])
+  model.compile(loss='categorical_crossentropy', optimizer=args.optimizer, metrics=['accuracy'])
   return model
 
 def main():
