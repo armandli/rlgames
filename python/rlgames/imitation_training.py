@@ -17,7 +17,7 @@ def parse_args():
           default='/home/armandli/rlgames/data')
   parser.add_argument('--encoder', '-e', type=str, default='oneplane')
   parser.add_argument('--model-size', '-m', type=str, default='small')
-  parser.add_argument('--epoch', '-p', type=int, default=5)
+  parser.add_argument('--epoch', '-p', type=int, default=100)
   parser.add_argument('--batchsize', '-b', type=int, default=32)
   parser.add_argument('--output', '-o', type=str,
           default='checkpoints/imitation_model')
@@ -58,13 +58,13 @@ def main():
   checkpoint_dir = args.data_dir + '/checkpoints/'
   print('Begin training')
   model.fit(TrainX, TrainY, args.batchsize, args.epoch, callbacks =
-          [ModelCheckpoint(checkpoint_dir + 'imitation_model_{}_'.format(args.model_size) + 'epoch_{epoch}.h5')])
+          [ModelCheckpoint(checkpoint_dir + 'imitation_model_{}_{}_'.format(args.encoder, args.model_size) + 'epoch_{epoch}.h5')])
   print('Training complete')
   validation = model.evaluate(TestX, TestY, args.batchsize)
   print('Validation Loss: {}'.format(validation[0]))
   print('Vlidationn Accuracy: {}'.format(validation[1]))
   print('Saving model')
-  model.save(args.data_dir + '/' + args.output + '_' + args.model_size + '.h5', overwrite=True)
+  model.save(args.data_dir + '/' + args.output + '_' + args.encoder + '_' + args.model_size + '.h5', overwrite=True)
 
 if __name__ == '__main__':
   main()
