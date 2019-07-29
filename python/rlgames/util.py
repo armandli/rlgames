@@ -30,3 +30,6 @@ def point_from_coord(coords):
   col = COLS.index(coords[0].upper()) + 1
   row = int(coords[1:])
   return Point(row, col)
+
+def coord_from_point(point):
+  return '%s%d' % (COLS[point.c - 1], point.r)
