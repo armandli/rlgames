@@ -86,7 +86,7 @@ class DataProcessor:
     label_file_base = self.data_dir + '/' + data_file_name + '_labels_%d'
     chunk = 0
     chunksize = 1024
-    # it losses the last incomplete chunk, and that's expected
+    # it losses the last incomplete chunk, and that could be a bug
     while features.shape[0] >= chunksize:
       feature_file = feature_file_base % chunk
       label_file = label_file_base % chunk

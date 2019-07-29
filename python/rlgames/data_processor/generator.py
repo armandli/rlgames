@@ -27,8 +27,6 @@ class DataGenerator:
         label_file = feature_file.replace('features', 'labels')
         x = np.load(feature_file)
         y = np.load(label_file)
-        x = x.astype('float32')
-        y = to_categorical(y.astype(int), num_classes)
         while x.shape[0] >= batch_size:
           x_batch, x = x[:batch_size], x[:batch_size]
           y_batch, y = y[:batch_size], y[:batch_size]
