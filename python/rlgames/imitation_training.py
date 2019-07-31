@@ -1,4 +1,5 @@
 import argparse
+import h5py
 
 from keras.models import Sequential
 from keras.layers.core import Dense
@@ -7,6 +8,7 @@ from keras.utils import to_categorical
 
 from rlgames.data_processor.parallel_processor import DataProcessor
 from rlgames.encoders import get_encoder_by_name
+from rlgames.agents.predict import DeepLearningAgent
 
 def parse_args():
   parser = argparse.ArgumentParser()
@@ -64,7 +66,9 @@ def main():
   print('Validation Loss: {}'.format(validation[0]))
   print('Vlidationn Accuracy: {}'.format(validation[1]))
   print('Saving model')
-  model.save(args.data_dir + '/' + args.output + '_' + args.encoder + '_' + args.model_size + '.h5', overwrite=True)
+  h5file = h5py.File(args.data_dir + '/agents/' + args.output + '_' + args.model_size + '_' + args.encoder + '.h5', 'w')
+  agent = DeepLearningAgent(model, encoder)
+  agent.serialize(h5file)
 
 if __name__ == '__main__':
   main()

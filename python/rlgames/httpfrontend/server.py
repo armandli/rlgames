@@ -58,10 +58,9 @@ def get_web_app(bot_map):
         elif bot_move.is_resign:
             bot_move_str = 'resign'
         else:
-            bot_move_str = coord_from_point(bot_move.point)
+            bot_move_str = coord_from_point(bot_move.pt)
         return jsonify({
-            'bot_move': bot_move_str,
-            'diagnostics': bot_agent.diagnostics()
+            'bot_move': bot_move_str
         })
 
     return app

@@ -39,7 +39,7 @@ R::Move parse_human_move(){
     else
       colidx = colstr - 'a';
     try {
-      rowidx = s::stoi(rowstr);
+      rowidx = s::stoi(rowstr) - 1;
     } catch (s::invalid_argument& err){
       s::cout << "Invalid row number: " << rowstr << ". Need to be a positive integer. retrying." << s::endl;
       continue;
