@@ -23,7 +23,7 @@ def parse_args():
   parser.add_argument('--batchsize', '-b', type=int, default=64)
   parser.add_argument('--optimizer', '-r', type=str, default='sgd')
   parser.add_argument('--output', '-o', type=str,
-          default='checkpoints/imitation_model')
+          default='imitation_model')
   args = parser.parse_args()
   return args
 
