@@ -5,8 +5,8 @@ from rlgames.agents.base import Agent
 from rlgames.agents.helper import is_point_an_eye
 from rlgames.game_base import Move
 from rlgames.goboard import Board
+from rlgames.encoders import get_encoder_by_name
 from rlgames.kerasutil import save_model_to_hdf5_group, load_model_from_hdf5_group
-#TODO: import kerasutil from rlgames ?
 
 class DeepLearningAgent(Agent):
   def __init__(self, model, encoder):
@@ -34,6 +34,7 @@ class DeepLearningAgent(Agent):
   def predict(self, gs):
     estate = self.encoder.encode(gs)
     x = np.array([estate])
+    x = x.astype('float32')
     return self.model.predict(x)[0]
 
   def serialize(self, h5file):

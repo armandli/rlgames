@@ -229,15 +229,19 @@ public:
     //happened for rule checking
   }
 
-  //TODO: BUG: board should be printed with origin at the button left, not top left
+  //TODO: horizontal index should avoid the letter I
   s::ostream& print(s::ostream& out) const {
-    char bchar = 'x';
-    char wchar = 'o';
+    char bchar = 'X';
+    char wchar = '0';
 
-    for (ubyte i = 0; i < SZ; ++i){
+    out << "   ";
+    if (SZ > 9) out << " ";
+    for (char c = 'A', i = 0; i < SZ; c++, i++)
+      out << c << ' ';
+    out << '\n';
+    for (ubyte i = SZ - 1; i < SZ; --i){
       if (i < 10) out << ' ';
-      out << (int)i;
-      out << ' ';
+      out << i + 1 << ' ';
       for (ubyte j = 0; j < SZ; ++j){
         udyte idx = get_string_idx(Pt(i, j));
         if (idx == EMPTY)
@@ -249,14 +253,12 @@ public:
         }
         out << ' ';
       }
-      out << "\n";
+      out << i + 1 << '\n';
     }
-    out << "  ";
-    char label = 'A';
-    for (ubyte i = 0; i < SZ; ++i){
-      out << ' ' << label;
-      label++;
-    }
+    out << "   ";
+    if (SZ > 9) out << " ";
+    for (char c = 'A', i = 0; i < SZ; c++, i++)
+      out << c << ' ';
     out << '\n';
     return out;
   }
