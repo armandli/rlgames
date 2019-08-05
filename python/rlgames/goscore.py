@@ -4,12 +4,12 @@ from rlgames.common_types import Player, Point
 
 #scoring using area score rule: player pieces + territory + komi
 class AreaScore:
-  def __init__(self, board):
+  def __init__(self, board, komi = 7.5):
     self.board = board
     self.labels = dict()
     self.create_territory_labels_()
     (self.bp, self.bt, self.wp, self.wt, self.dames) = self.score_()
-    self.komi = 7.5
+    self.komi = komi
 
   def winner(self):
     if self.bp + self.bt > self.wp + self.wt + self.komi:
@@ -72,3 +72,11 @@ class AreaScore:
         else:
           wp += 1
     return (bp, bt, wp, wt, dm)
+
+  def __repr__(self):
+    winner = self.winner()
+    margin = self.winning_margin()
+    return "{}+{}".format(winner, margin)
+
+  def __str__(self):
+    return repr(self)

@@ -1,5 +1,6 @@
 from rlgames.game_base import Move
 from rlgames.goboard import GameState
+from rlgames.agents.base import Agent
 
 class TerminationStrategy:
   def __init__(self):

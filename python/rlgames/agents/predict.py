@@ -16,7 +16,7 @@ class DeepLearningAgent(Agent):
 
   def select_move(self, gs):
     eps = 1e-6
-    num_actions = self.encoder.num_points
+    num_actions = self.encoder.num_points()
     move_probs = self.predict(gs)
     #scaling, clipping and re-normalizing move probabilities to reduce ambiguity,
     #then sample from the rescaled moves
@@ -26,7 +26,7 @@ class DeepLearningAgent(Agent):
     candidates = np.arange(num_actions)
     actions = np.random.choice(candidates, num_actions, replace=False, p=move_probs)
     for point_idx in actions:
-      point = self.encoder.decode_point_inde(point_idx)
+      point = self.encoder.decode_point_index(point_idx)
       if gs.is_valid_move(Move.play(point)) and not is_point_an_eye(gs.board, point, gs.nplayer):
         return Move.play(point)
     return Move.pass_turn()
