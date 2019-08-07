@@ -118,7 +118,7 @@ class LocalGtpBot:
       self.sgf.append(';{}[{}]\n'.format(their_letter, self.sgf.coordinates(move)))
 
 if __name__ == '__main__':
-  agent_file = '/home/armandli/rlgames/data/agents/imitation_model_medium_sevenplane.h5'
+  agent_file = '/home/armandli/rlgames/data/agents/sl_medium_sevenplane_9.h5'
   bot = load_prediction_agent(h5py.File(agent_file, 'r'))
   gtp_bot = LocalGtpBot(gobot = bot, termination=PassWhenOpponentPasses(), handicap=0, opponent='gnugo')
   gtp_bot.run()
