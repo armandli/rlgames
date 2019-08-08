@@ -22,8 +22,11 @@ def main():
     print_board(game.board)
     if game.nplayer == Player.black:
       human_move = input('-- ')
-      point = point_from_coord(human_move.strip())
-      move = Move.play(point)
+      if len(human_move) > 1:
+        point = point_from_coord(human_move.strip())
+        move = Move.play(point)
+      else:
+        move = Move.pass_turn()
     else:
       move = bot.select_move(game)
     print_move(game.nplayer, move)

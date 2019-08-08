@@ -23,7 +23,7 @@ def parse_args():
   parser.add_argument('--batchsize', '-b', type=int, default=64)
   parser.add_argument('--optimizer', '-r', type=str, default='sgd')
   parser.add_argument('--output', '-o', type=str,
-          default='imitation_model')
+          default='sl')
   args = parser.parse_args()
   return args
 
@@ -60,13 +60,13 @@ def main():
   checkpoint_dir = args.data_dir + '/checkpoints/'
   print('Begin training')
   model.fit(TrainX, TrainY, args.batchsize, args.epoch, callbacks =
-          [ModelCheckpoint(checkpoint_dir + 'imitation_model_{}_{}_'.format(args.encoder, args.model_size) + 'epoch_{epoch}.h5')])
+          [ModelCheckpoint(checkpoint_dir + 'sl_{}_{}_{}_'.format(args.encoder, args.model_size, args.board_size) + 'epoch_{epoch}.h5')])
   print('Training complete')
   validation = model.evaluate(TestX, TestY, args.batchsize)
   print('Validation Loss: {}'.format(validation[0]))
   print('Vlidationn Accuracy: {}'.format(validation[1]))
   print('Saving model')
-  h5file = h5py.File(args.data_dir + '/agents/' + args.output + '_' + args.model_size + '_' + args.encoder + '.h5', 'w')
+  h5file = h5py.File(args.data_dir + '/agents/' + args.output + '_' + args.model_size + '_' + args.encoder + '_' + str(args.board_size) + '.h5', 'w')
   agent = DeepLearningAgent(model, encoder)
   agent.serialize(h5file)
 
