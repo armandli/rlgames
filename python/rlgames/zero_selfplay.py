@@ -117,7 +117,7 @@ def main():
       collector1.clear()
       collector2.clear()
   agent1.serialize(h5py.File(agent_path, 'w'))
-  print('Actor Critic Selfplay complete. agent is in {}'.format(agent_path))
+  print('AlphaGo Zero Selfplay complete. agent is in {}'.format(agent_path))
 
 if __name__ == '__main__':
   main()

@@ -5,6 +5,7 @@ import h5py
 from rlgames.common_types import Player
 from rlgames.game_base import Move
 from rlgames.goboard import GameState
+from rlgames.agents.random_fast import FastRandomAgent
 from rlgames.agents.pg import load_policy_agent
 from rlgames.agents.q import load_q_agent
 from rlgames.agents.ac import load_ac_agent
@@ -54,35 +55,28 @@ def load_agent(args):
 
 def main():
   args = parse_args()
-  agent = load_agent(args)
   board_size = args.board_size
-  game = GameState.new_game(board_size)
+  agent = load_agent(args)
+  random = FastRandomAgent(args.board_size)
   if args.playas == 'black':
-    human_play = Player.black
+    random_play = Player.black
   elif args.playas == 'white':
-    human_play = Player.white
+    random_play = Player.white
   else:
     raise ValueError('Unknown option for playas: {}'.format(args.playas))
-  while not game.is_over():
-    print_board(game.board)
-    if game.nplayer == human_play:
-      human_move = input('-- ')
-      if len(human_move) > 1:
-        point = point_from_coord(human_move.strip())
-        move = Move.play(point)
+  win_count = 0
+  for  _ in range(1000):
+    game = GameState.new_game(board_size)
+    while not game.is_over():
+      if game.nplayer == random_play:
+        move = random.select_move(game)
       else:
-        move = Move.pass_turn()
-    else:
-      move = agent.select_move(game)
-    print_move(game.nplayer, move)
-    game = game.apply_move(move)
-  winner = game.winner()
-  if winner is None:
-    print("Tie")
-  elif winner == Player.black:
-    print("Black win")
-  else:
-    print("White win")
+        move = agent.select_move(game)
+      game = game.apply_move(move)
+    winner = game.winner()
+    if winner is not None and winner != random_play:
+      win_count += 1
+  print('Model won: {}/1000'.format(win_count))
 
 if __name__ == '__main__':
   main()
