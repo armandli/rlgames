@@ -11,6 +11,8 @@ from rlgames.rl.zero import ZeroExperienceCollector
 # alpha go zero
 # TODO: model should add batch normalization layer
 # TODO: model should use residual net layer model
+# TODO: BUG! boundary base where node does not have anymore branches (terminal game node)
+#       causes failure of the algorithm
 
 class Branch:
   def __init__(self, prior):
