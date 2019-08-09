@@ -11,8 +11,6 @@ from rlgames.rl.zero import ZeroExperienceCollector
 # alpha go zero
 # TODO: model should add batch normalization layer
 # TODO: model should use residual net layer model
-# TODO: BUG! boundary base where node does not have anymore branches (terminal game node)
-#       causes failure of the algorithm
 
 class Branch:
   def __init__(self, prior):
@@ -40,6 +38,8 @@ class ZeroTreeNode:
     self.children[move] = child_node
 
   def has_child(self, move):
+    if move is  None:
+      return False
     return move in self.children
 
   def get_child(self, move):
@@ -83,27 +83,43 @@ class ZeroAgent(Agent):
       while node.has_child(next_move):
         node = node.get_child(next_move)
         next_move = self.select_branch(node)
-      #expand the new leaf and update the tree
-      new_state = node.state.apply_move(next_move)
-      child_node = self.create_node(new_state, next_move, node)
-      #update tree all the way to the root
-      move = next_move
-      value = -1. * child_node.value
-      while node is not None:
-        node.record_visit(move, value)
+      # if we cannot expand any children, update the visit count,
+      # we cannot choose a different node to visit because visit
+      # count indicate best choice.
+      if next_move is None:
+        value = node.value
         move = node.last_move
         node = node.parent
         value = -1. * value
+        while node is not None:
+          node.record_visit(move, value)
+          move = node.last_move
+          node = node.parent
+          value = -1. * value
+      else:
+        #expand the new leaf and update the tree
+        new_state = node.state.apply_move(next_move)
+        child_node = self.create_node(new_state, next_move, node)
+        #update tree all the way to the root
+        move = next_move
+        value = -1. * child_node.value
+        while node is not None:
+          node.record_visit(move, value)
+          move = node.last_move
+          node = node.parent
+          value = -1. * value
     #collect experience, for AlphaGo Zero, collect the visit count
     if self.collector is not None:
       root_state_tensor = self.encoder.encode(gs)
       visit_counts = np.array([root.visit_count(self.encoder.decode_move_index(idx)) for idx in range(self.encoder.num_moves())])
       self.collector.record_decision(root_state_tensor, visit_counts)
     #select a move, by picking the immediate child with the highest visit count
-    return max(root.moves(), key=root.visit_counts)
+    return max(root.moves(), key=root.visit_count)
 
   def select_branch(self, node):
     #TODO: add dirichlet noise for branch selection to better self play
+    if len(node.moves()) == 0:
+      return None
     total_n = node.total_visit_count
     def score_branch(move):
       q = node.expected_value(move)
@@ -134,11 +150,11 @@ class ZeroAgent(Agent):
   def train(self, experience, learning_rate, batch_size):
     num_examples = experience.states.shape[0]
     model_input = experience.states
-    visit_sums = np.sum(experience.visit_counts, axis=1).reshape((num_examples, 1))
-    action_target = experience.visit_counts / visit_sums
+    visit_sums = np.sum(experience.vcounts, axis=1).reshape((num_examples, 1))
+    action_target = experience.vcounts / visit_sums
     value_target = experience.rewards
     self.model.compile(SGD(lr=learning_rate), loss=['categorical_crossentropy', 'mse'])
-    model.fit(model_input, [action_target, value_target], batch_size=batch_size) #TODO: no epoch specification ?
+    self.model.fit(model_input, [action_target, value_target], batch_size=batch_size) #TODO: no epoch specification ?
 
   def serialize(self, h5file):
     h5file.create_group('encoder')

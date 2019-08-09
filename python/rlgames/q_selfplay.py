@@ -127,6 +127,7 @@ def main():
       agent1.serialize(h5py.File(agent_path, 'w'))
       agent2 = load_q_agent(h5py.File(agent_path, 'r'))
       agent2.set_collector(collector2)
+      #TODO: is it correct to clear experience?
       collector1.clear()
       collector2.clear()
   agent1.serialize(h5py.File(agent_path, 'w'))

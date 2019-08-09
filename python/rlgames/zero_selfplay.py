@@ -16,7 +16,7 @@ def parse_args():
   parser.add_argument('--encoder-name', '-e', type=str, default='zero')
   parser.add_argument('--data-dir', '-d', type=str, default='/home/armandli/rlgames/data')
   parser.add_argument('--learning-rate', '-l', type=float, default=0.00001)
-  parser.add_argument('--batchsize', '-b', type=int, default='2048')
+  parser.add_argument('--batchsize', '-b', type=int, default='100')
   parser.add_argument('--rounds', '-r', type=int, default=1000000)
   return parser.parse_args()
 
@@ -89,8 +89,7 @@ def main():
   }
   for i in range(args.rounds):
     round_no = i + 1
-    if i % 10 == 0:
-      print('Begin round {} selfplay.'.format(i))
+    print('Begin round {} selfplay.'.format(round_no))
     collector1.begin_episode()
     collector2.begin_episode()
     game = GameState.new_game(args.board_size)
@@ -105,7 +104,7 @@ def main():
       collector1.complete_episode(-1.)
       collector2.complete_episode(1.)
     # learng and evaluate the experience
-    if round_no % 1000 == 0:
+    if round_no % 100 == 0:
       print('Begin round {} training'.format(round_no))
       exp = combine_experience([collector1, collector2])
       agent1.train(exp, args.learning_rate, batch_size=args.batchsize)
@@ -114,6 +113,7 @@ def main():
       agent1.serialize(h5py.File(agent_path, 'w'))
       agent2 = load_zero_agent(h5py.File(agent_path, 'r'))
       agent2.set_collector(collector2)
+      #TODO: is it correct to clear experience?
       collector1.clear()
       collector2.clear()
   agent1.serialize(h5py.File(agent_path, 'w'))
