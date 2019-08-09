@@ -91,7 +91,7 @@ class AdvExperienceCollector:
     self.curr_actions = []
     self.curr_est_v   = []
 
-  def record_decision(self, state, action, estimated_value = 0):
+  def record_decision(self, state, action, estimated_value):
     self.curr_states.append(state)
     self.curr_actions.append(action)
     self.curr_est_v.append(estimated_value)
