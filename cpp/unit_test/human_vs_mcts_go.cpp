@@ -9,7 +9,7 @@
 #include <go_types.h>
 #include <mcts_agent.h>
 #include <splitmix.h>
-#include <parallel_mcts_agent.h>
+#include <lp_mcts_agent.h>
 
 namespace s = std;
 namespace c = s::chrono;
@@ -63,7 +63,7 @@ int main(){
   R::GoGameState<SZ> state;
   //R::MCTSAgent<R::Splitmix, R::GoBoard<SZ>, R::GoGameState<SZ>> agent(531441, 1., 1);
   //R::MCTSAgent<R::Splitmix, R::GoBoard<SZ>, R::GoGameState<SZ>> agent(531441, 1., 64);
-  R::PMCTSAgent<R::Splitmix, R::GoBoard<SZ>, R::GoGameState<SZ>> agent(531441, 1., 128);
+  R::LPMCTSAgent<R::Splitmix, R::GoBoard<SZ>, R::GoGameState<SZ>> agent(531441, 1., 128);
   R::Player turn = R::Player::Black;
 
   while (not state.is_over()){

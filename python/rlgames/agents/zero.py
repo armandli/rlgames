@@ -9,6 +9,7 @@ from rlgames.agents.base import Agent
 from rlgames.rl.zero import ZeroExperienceCollector
 
 # alpha go zero
+
 # TODO: model should add batch normalization layer
 # TODO: model should use residual net layer model
 
@@ -117,17 +118,21 @@ class ZeroAgent(Agent):
     return max(root.moves(), key=root.visit_count)
 
   def select_branch(self, node):
-    #TODO: add dirichlet noise for branch selection to better self play
-    if len(node.moves()) == 0:
+    all_moves = node.moves()
+    if len(all_moves) == 0:
       return None
     total_n = node.total_visit_count
-    def score_branch(move):
+    noises = np.random.dirichlet([0.03 for _ in range(len(all_moves))])
+    moves_with_noises = [(move, noise) for move, noise in zip(all_moves, noises)]
+    def score_branch(move_and_noise):
+      move = move_and_noise[0]
+      noise = move_and_noise[1]
       q = node.expected_value(move)
       p = node.prior(move)
       n = node.visit_count(move)
-      return q + self.c * p * (np.sqrt(total_n) / (n + 1))
-    return max(node.moves(), key=score_branch)
-
+      #TODO: is this the right way to apply dirichlet noise ?
+      return q + (self.c + noise) * p * (np.sqrt(total_n) / (n + 1))
+    return max(moves_with_noises, key=score_branch)[0]
 
   def create_node(self, gs, move=None, parent=None):
     state_tensor = self.encoder.encode(gs)
