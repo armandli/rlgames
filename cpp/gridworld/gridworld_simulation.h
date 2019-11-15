@@ -10,14 +10,18 @@ namespace g = gridworld;
 namespace t = torch;
 
 template <typename Model>
-int simulate_gridworld(GridEnv& env, Model& model, uint max_steps = 10){
+int simulate_gridworld(GridEnv& env, Model& model, uint max_steps, t::Device device){
+  t::Device cpu_device(t::kCPU);
+
   g::GridWorld ins = env.create();
   uint step_count = 0;
   while (not env.is_termination(ins) && step_count < max_steps){
     env.display(ins);
 
     t::Tensor tstate = model.state_encoder.encode_state(env.get_state(ins));
-    t::Tensor taction = model.model->forward(tstate);
+    t::Tensor tstate_dev = tstate.to(device);
+    t::Tensor taction_dev = model.model->forward(tstate_dev);
+    t::Tensor taction = taction_dev.to(cpu_device);
     g::Action action = model.action_encoder.decode_action(taction);
     env.apply_action(ins, action);
 

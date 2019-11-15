@@ -31,17 +31,22 @@ class GridEnv {
 
   g::GridWorld random_player_location_init() const {
     g::GridWorld ret(mSize, 1, 1, 1, 0, true);
-    s::srand(time(0));
     while (not ret.set_player_location(g::Pt(s::rand() % mSize, s::rand() % mSize)));
     return ret;
   }
 
   g::GridWorld random_simple_init() const {
-    s::srand(time(0));
     return g::GridWorld(mSize, 1, 1, 1, rand(), true);
   }
 public:
-  GridEnv(uint sz, GridEnvMode mode): mSize(sz), mMode(mode) {}
+  GridEnv(uint sz, GridEnvMode mode): mSize(sz), mMode(mode) {
+    switch (mMode){
+    case GridEnvMode::RandomPlayerLocation:
+    case GridEnvMode::RandomSimple:
+      s::srand(time(0));
+    default:;
+    }
+  }
 
   g::GridWorld create() const {
     switch (mMode){
@@ -234,19 +239,19 @@ public:
 
 class SimpleGridModelImpl : public t::nn::Module {
   t::nn::Linear l1, l2, l3;
-  t::Tensor     b1, b2;
 public:
   SimpleGridModelImpl(sint64 isz, sint64 l1sz, sint64 l2sz, sint64 osz):
     l1(register_module("l1", t::nn::Linear(isz, l1sz))),
     l2(register_module("l2", t::nn::Linear(l1sz, l2sz))),
-    l3(register_module("l3", t::nn::Linear(l2sz, osz))),
-    b1(register_parameter("b1", t::randn(l1sz))),
-    b2(register_parameter("b2", t::randn(l2sz)))
+    l3(register_module("l3", t::nn::Linear(l2sz, osz)))
+  {}
+  SimpleGridModelImpl(const SimpleGridModelImpl& o):
+    l1(o.l1->options), l2(o.l2->options), l3(o.l3->options)
   {}
 
   t::Tensor forward(t::Tensor x){
-    x = t::relu(l1(x) + b1);
-    x = t::relu(l2(x) + b2);
+    x = t::relu(l1(x));
+    x = t::relu(l2(x));
     x = l3(x);
     return x;
   }
@@ -255,22 +260,21 @@ TORCH_MODULE(SimpleGridModel);
 
 class MediumGridModelImpl : public t::nn::Module {
   t::nn::Linear l1, l2, l3, l4;
-  t::Tensor     b1, b2, b3;
 public:
   MediumGridModelImpl(sint64 isz, sint64 l1sz, sint64 l2sz, sint64 l3sz, sint64 osz):
     l1(register_module("l1", t::nn::Linear(isz, l1sz))),
     l2(register_module("l2", t::nn::Linear(l1sz, l2sz))),
     l3(register_module("l3", t::nn::Linear(l2sz, l3sz))),
-    l4(register_module("l4", t::nn::Linear(l3sz, osz))),
-    b1(register_parameter("b1", t::randn(l1sz))),
-    b2(register_parameter("b2", t::randn(l2sz))),
-    b3(register_parameter("b3", t::randn(l3sz)))
+    l4(register_module("l4", t::nn::Linear(l3sz, osz)))
+  {}
+  MediumGridModelImpl(const MediumGridModelImpl& o):
+    l1(o.l1->options), l2(o.l2->options), l3(o.l3->options), l4(o.l4->options)
   {}
 
-  t::Tensor forwar(t::Tensor x){
-    x = t::relu(l1(x) + b1);
-    x = t::relu(l2(x) + b2);
-    x = t::relu(l3(x) + b3);
+  t::Tensor forward(t::Tensor x){
+    x = t::relu(l1(x));
+    x = t::relu(l2(x));
+    x = t::relu(l3(x));
     x = l4(x);
     return x;
   }
