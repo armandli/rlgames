@@ -1,12 +1,11 @@
 #include <gridworld.h>
 #include <gridworld_models.h>
-#include <gridworld_simulation.h>
 #include <learning_metaparam.h>
-#include <naive_qlearning.h>
+#include <deep_qlearning.h>
+#include <gridworld_simulation.h>
 
 #include <torch/torch.h>
 
-#include <ctime>
 #include <vector>
 #include <iostream>
 
@@ -15,7 +14,7 @@ namespace g = gridworld;
 namespace t = torch;
 namespace m = gridworld_pt;
 
-//naive q learning using static grid world of size k
+//deep q learning using random grid world of size k
 
 int main(int argc, char* argv[]){
   uint grid_size = 4;
@@ -24,27 +23,30 @@ int main(int argc, char* argv[]){
 
   t::Device device(t::kCPU);
   if (t::cuda::is_available()){
-    s::cout << "Use GPU" << s::endl;
     device = t::Device(t::kCUDA);
   }
 
-  m::GridEnv env(grid_size, m::GridEnvMode::StaticSimple);
+  m::GridEnv env(grid_size, m::GridEnvMode::RandomSimple);
+  //m::GridEnv env(grid_size, m::GridEnvMode::StaticSimple);
+  //m::RLModel<m::MediumGridModel, m::GridStateEncoder, m::GridActionEncoder, t::optim::Adam> rlm(
+    //m::MediumGridModel(env.state_size(), 200, 150, 100, env.action_size()),
   m::RLModel<m::SimpleGridModel, m::GridStateEncoder, m::GridActionEncoder, t::optim::Adam> rlm(
     m::SimpleGridModel(env.state_size(), 164, 150, env.action_size()),
     m::GridStateEncoder(env),
     m::GridActionEncoder(env),
-    1e-4F
+    1e-3F
   );
   m::qlearning_metaparams<m::epsilon_greedy_metaparams, m::experience_replay_metaparams> mp;
-  mp.epochs = 1000;
+  mp.epochs = 5000;
   mp.gamma = 0.9;
-  mp.exp.epsilon = 1.;
+  mp.tc_steps = 500;
   mp.max_steps = env.state_size() / 4 / 2;
+  mp.exp.epsilon = 1.;
+  mp.erb.sz = 2000;
+  mp.erb.batchsize = 250;
   s::vector<float> losses;
 
-  //maximum steps per game need to have close bound limit otherwise agent may spend too much time
-  //getting discouraged for not able to find winning goal
-  m::naive_qlearning<decltype(env), decltype(rlm), g::GridWorld, g::Action>(
+  m::deep_qlearning<decltype(env), decltype(rlm), g::GridWorld, g::Action, m::ExpReplayBuffer<m::Exp<g::Action>>>(
     env,
     rlm,
     device,
@@ -52,7 +54,7 @@ int main(int argc, char* argv[]){
     losses
   );
 
-  m::simulate_gridworld(env, rlm, env.state_size() / 4 / 2, device, true);
+  m::simulate_gridworld(env, rlm, env.state_size() / 4, device, true);
 
   if (losses.size() > 0){
     s::cout << "Final Loss: " << losses.back() << s::endl;

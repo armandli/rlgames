@@ -1,6 +1,8 @@
 #ifndef GRIDWORLD_NAIVE_QLEARNING
 #define GRIDWORLD_NAIVE_QLEARNING
 
+#include <learning_metaparam.h>
+
 #include <random>
 
 #include <torch/torch.h>
@@ -18,12 +20,9 @@ template <typename ENV, typename RLM, typename INS, typename ACTION, uint loss_s
 void naive_qlearning(
   ENV& env,
   RLM& rlm,
-  uint64 epochs,
-  double gamma,
-  double epsilon,
-  s::vector<float>& losses,
-  uint64 max_steps,
-  t::Device device){
+  t::Device device,
+  qlearning_metaparams<epsilon_greedy_metaparams, experience_replay_metaparams> mp,
+  s::vector<float>& losses){
 
   t::Device cpu_device(t::kCPU);
 
@@ -33,10 +32,10 @@ void naive_qlearning(
 
   rlm.model->to(device);
 
-  for (uint64 i = 0; i < epochs; ++i){
+  for (uint64 i = 0; i < mp.epochs; ++i){
     INS ins = env.create();
     uint64 step_count = 0;
-    while (not env.is_termination(ins) && step_count < max_steps){
+    while (not env.is_termination(ins) && step_count < mp.max_steps){
       rlm.model->zero_grad();
       t::Tensor tstate = rlm.state_encoder.encode_state(env.get_state(ins));
       t::Tensor tstate_dev = tstate.to(device);
@@ -44,7 +43,7 @@ void naive_qlearning(
       t::Tensor qval = qval_dev.to(cpu_device);
       ACTION action;
       // epsilon greedy action selection
-      if (dist(reng) < epsilon){
+      if (dist(reng) < mp.exp.epsilon){
         action = (ACTION)rand_action(reng);
       } else {
         action = rlm.action_encoder.decode_action(qval);
@@ -60,7 +59,7 @@ void naive_qlearning(
       if (env.is_termination(ins)){
         y[(uint)action] = t::scalar_tensor(reward);
       } else {
-        y[(uint)action] = t::scalar_tensor(reward + gamma * maxq);
+        y[(uint)action] = t::scalar_tensor(reward + mp.gamma * maxq);
       }
       t::Tensor y_dev = y.to(device);
       t::Tensor loss_dev = t::mse_loss(qval_dev, y_dev.detach());
@@ -76,11 +75,11 @@ void naive_qlearning(
     }
 
     // epsilon decay
-    if (epsilon > 0.1)
-      epsilon -= 1. / (double)epochs;
+    if (mp.exp.epsilon > 0.1)
+      mp.exp.epsilon -= 1. / (double)mp.epochs;
 
     if (i % 10 == 0)
-      s::cout << "epsilon: " << epsilon << s::endl;
+      s::cout << "epsilon: " << mp.exp.epsilon << s::endl;
   }
 }
 

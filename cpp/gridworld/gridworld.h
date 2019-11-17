@@ -264,6 +264,10 @@ public:
     return 0;
   }
 
+  uint step_count() const {
+    return mStepCount;
+  }
+
   void move(Action action){
     mStepCount++;
 

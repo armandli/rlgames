@@ -21,10 +21,11 @@ struct Exp {
   t::Tensor ntstate;
   float     reward;
   ACTION    action;
+  bool      ntstate_isterminal;
 
-  Exp(): tstate(), ntstate(), reward(0.f), action((ACTION)0) {}
-  Exp(t::Tensor st, ACTION a, float r, t::Tensor nst):
-    tstate(st.clone()), ntstate(nst.clone()), reward(r), action(a)
+  Exp(): tstate(), ntstate(), reward(0.f), action((ACTION)0), ntstate_isterminal(false) {}
+  Exp(t::Tensor st, ACTION a, float r, t::Tensor nst, bool isterm):
+    tstate(st.clone()), ntstate(nst.clone()), reward(r), action(a), ntstate_isterminal(isterm)
   {}
 };
 

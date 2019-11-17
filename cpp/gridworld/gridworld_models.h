@@ -78,10 +78,10 @@ public:
 
   float get_reward(const g::GridWorld& ins) const {
     float reward = ins.get_reward();
-    if (reward == 0.)
-      return -1.f;
+    if (reward == 0)
+      return -1.;
     else
-      return reward;
+      return reward * 2;
   }
 
   void apply_action(g::GridWorld& ins, g::Action action) const {
@@ -150,7 +150,7 @@ public:
           break;
         default: assert(false);
       }
-    t::Tensor ret = t::from_blob(mState, {encoded_state_sz});
+    t::Tensor ret = t::from_blob(mState, {encoded_state_sz}).clone();
     return ret;
   }
 
@@ -218,7 +218,7 @@ public:
       break;
     default: assert(false);
     }
-    t::Tensor ret = t::from_blob(mAction, {sz});
+    t::Tensor ret = t::from_blob(mAction, {sz}).clone();
     return ret;
   }
 
