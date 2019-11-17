@@ -62,8 +62,7 @@ void deep_qlearning(
       if (dist(reng) < mp.exp.epsilon){
         action = (ACTION)rand_action(reng);
       } else {
-        t::Tensor qval = qval_dev.to(cpu_device);
-        action = rlm.action_encoder.decode_action(qval);
+        action = rlm.action_encoder.decode_action(qval_dev);
       }
       env.apply_action(ins, action);
       t::Tensor tnstate_dev = rlm.state_encoder.encode_state(env.get_state(ins), device);

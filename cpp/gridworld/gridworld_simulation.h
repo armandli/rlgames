@@ -21,8 +21,7 @@ int simulate_gridworld(GridEnv& env, Model& model, uint max_steps, t::Device dev
 
     t::Tensor tstate_dev = model.state_encoder.encode_state(env.get_state(ins), device);
     t::Tensor taction_dev = model.model->forward(tstate_dev);
-    t::Tensor taction = taction_dev.to(cpu_device);
-    g::Action action = model.action_encoder.decode_action(taction);
+    g::Action action = model.action_encoder.decode_action(taction_dev);
     env.apply_action(ins, action);
 
     if (display){

@@ -232,7 +232,6 @@ public:
   }
 
   g::Action decode_action(t::Tensor tensor) const {
-    //TODO: see if any way I can read directly from GPU
     uint max_idx = t::argmax(tensor).item().to<int>();
 
     assert(max_idx < mEnv.action_size());

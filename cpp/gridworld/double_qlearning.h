@@ -63,8 +63,7 @@ void double_qlearning(
       if (dist(reng) < mp.exp.epsilon){
         action = (ACTION)rand_action(reng);
       } else {
-        t::Tensor qval = qval_dev.to(cpu_device);
-        action = rlm.action_encoder.decode_action(qval);
+        action = rlm.action_encoder.decode_action(qval_dev);
       }
       env.apply_action(ins, action);
       t::Tensor tnstate_dev = rlm.state_encoder.encode_state(env.get_state(ins), device);
@@ -80,7 +79,8 @@ void double_qlearning(
           t::Tensor oqval_dev = rlm.model->forward(exp.tstate);
           t::Tensor nqval_dev = targetn->forward(exp.ntstate);
           t::Tensor nqselect_dev = rlm.model->forward(exp.ntstate);
-          int argmaxq = nqselect_dev.argmax().item().to<int>();
+          //int argmaxq = nqselect_dev.argmax().item().to<int>();
+          int argmaxq = t::argmax(nqselect_dev).item().to<int>();
           float maxq = nqval_dev[argmaxq].item().to<float>();
           t::Tensor y_dev = oqval_dev.clone();
           if (not exp.ntstate_isterminal){
