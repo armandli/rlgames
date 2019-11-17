@@ -37,39 +37,33 @@ void naive_qlearning(
     uint64 step_count = 0;
     while (not env.is_termination(ins) && step_count < mp.max_steps){
       rlm.model->zero_grad();
-      t::Tensor tstate = rlm.state_encoder.encode_state(env.get_state(ins));
-      t::Tensor tstate_dev = tstate.to(device);
+      t::Tensor tstate_dev = rlm.state_encoder.encode_state(env.get_state(ins), device);
       t::Tensor qval_dev = rlm.model->forward(tstate_dev);
-      t::Tensor qval = qval_dev.to(cpu_device);
       ACTION action;
       // epsilon greedy action selection
       if (dist(reng) < mp.exp.epsilon){
         action = (ACTION)rand_action(reng);
       } else {
+        t::Tensor qval = qval_dev.to(cpu_device);
         action = rlm.action_encoder.decode_action(qval);
       }
       env.apply_action(ins, action);
-      t::Tensor tnstate = rlm.state_encoder.encode_state(env.get_state(ins));
-      t::Tensor tnstate_dev = tnstate.to(device);
+      t::Tensor tnstate_dev = rlm.state_encoder.encode_state(env.get_state(ins), device);
       float reward = env.get_reward(ins);
       t::Tensor nqval_dev = rlm.model->forward(tnstate_dev);
-      t::Tensor nqval = nqval_dev.to(cpu_device);
-      float maxq = nqval.max().item().to<float>();
-      t::Tensor y = qval.clone();
+      float maxq = nqval_dev.max().item().to<float>();
+      t::Tensor y_dev = qval_dev.clone();
       if (env.is_termination(ins)){
-        y[(uint)action] = t::scalar_tensor(reward);
+        y_dev[(uint)action] = t::scalar_tensor(reward, device);
       } else {
-        y[(uint)action] = t::scalar_tensor(reward + mp.gamma * maxq);
+        y_dev[(uint)action] = t::scalar_tensor(reward + mp.gamma * maxq, device);
       }
-      t::Tensor y_dev = y.to(device);
       t::Tensor loss_dev = t::mse_loss(qval_dev, y_dev.detach());
       loss_dev.backward();
       rlm.optimizer.step();
 
-      if ((i + step_count) % loss_sampling_interval == 0){
-        t::Tensor loss = loss_dev.to(cpu_device);
-        losses.push_back(loss.item().to<float>());
-      }
+      if ((i + step_count) % loss_sampling_interval == 0)
+        losses.push_back(loss_dev.item().to<float>());
 
       step_count++;
     }

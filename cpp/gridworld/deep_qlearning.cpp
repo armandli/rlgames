@@ -23,6 +23,7 @@ int main(int argc, char* argv[]){
 
   t::Device device(t::kCPU);
   if (t::cuda::is_available()){
+    s::cout << "Using GPU" << s::endl;
     device = t::Device(t::kCUDA);
   }
 

@@ -115,7 +115,7 @@ public:
     }
   }
 
-  t::Tensor encode_state(const g::GridState& state) const {
+  t::Tensor encode_state(const g::GridState& state, t::Device device) const {
     uint sz = mEnv.size();
     uint psz = sz * sz;
     uint encoded_state_sz = sz * sz * 4;
@@ -150,11 +150,16 @@ public:
           break;
         default: assert(false);
       }
-    t::Tensor ret = t::from_blob(mState, {encoded_state_sz}).clone();
-    return ret;
+    t::Tensor m = t::from_blob(mState, {encoded_state_sz});
+    if (device.type() == t::kCUDA){
+      return m.to(device);
+    } else {
+      return m.clone();
+    }
   }
 
   g::GridState decode_state(t::Tensor tensor) const {
+    //TODO: see if I can read directly from GPU memory
     uint sz = mEnv.size();
     uint encoded_state_sz = sz * sz * 4;
     s::memcpy(mState, tensor.data_ptr(), encoded_state_sz);
@@ -198,7 +203,7 @@ public:
     }
   }
 
-  t::Tensor encode_action(g::Action action) const {
+  t::Tensor encode_action(g::Action action, t::Device device) const {
     uint sz = mEnv.action_size();
     for (uint i = 0; i < sz; ++i)
       mAction[i] = 0.f;
@@ -218,11 +223,16 @@ public:
       break;
     default: assert(false);
     }
-    t::Tensor ret = t::from_blob(mAction, {sz}).clone();
-    return ret;
+    t::Tensor m = t::from_blob(mAction, {sz});
+    if (device.type() == t::kCUDA){
+      return m.to(device);
+    } else {
+      return m.clone();
+    }
   }
 
   g::Action decode_action(t::Tensor tensor) const {
+    //TODO: see if any way I can read directly from GPU
     uint max_idx = t::argmax(tensor).item().to<int>();
 
     assert(max_idx < mEnv.action_size());

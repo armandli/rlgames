@@ -57,8 +57,7 @@ void double_qlearning(
         tc_step = 0;
       }
 
-      t::Tensor tstate = rlm.state_encoder.encode_state(env.get_state(ins));
-      t::Tensor tstate_dev = tstate.to(device);
+      t::Tensor tstate_dev = rlm.state_encoder.encode_state(env.get_state(ins), device);
       t::Tensor qval_dev = rlm.model->forward(tstate_dev);
       ACTION action;
       if (dist(reng) < mp.exp.epsilon){
@@ -68,49 +67,37 @@ void double_qlearning(
         action = rlm.action_encoder.decode_action(qval);
       }
       env.apply_action(ins, action);
-      t::Tensor tnstate = rlm.state_encoder.encode_state(env.get_state(ins));
+      t::Tensor tnstate_dev = rlm.state_encoder.encode_state(env.get_state(ins), device);
       float reward = env.get_reward(ins);
-      replay_buffer.append(Exp<ACTION>(tstate, action, reward, tnstate, env.is_termination(ins)));
+      replay_buffer.append(Exp<ACTION>(tstate_dev, action, reward, tnstate_dev, env.is_termination(ins)));
       if (replay_buffer.is_filled()){
         rlm.model->zero_grad();
         ExpBatch<Exp<ACTION>> batch = replay_buffer.sample_batch(mp.erb.batchsize);
         t::Tensor output_dev = t::zeros({mp.erb.batchsize, env.action_size()}, device);
-        t::Tensor target = t::zeros({mp.erb.batchsize, env.action_size()});
+        t::Tensor target_dev = t::zeros({mp.erb.batchsize, env.action_size()}, device);
         uint h = 0;
         for (Exp<ACTION>& exp : batch){
-          t::Tensor tstate_dev = exp.tstate.to(device);
-          t::Tensor oqval_dev = rlm.model->forward(tstate_dev);
-          t::Tensor oqval = oqval_dev.to(cpu_device);
-
-          t::Tensor ntstate_dev = exp.ntstate.to(device);
-          t::Tensor nqval_dev = targetn->forward(ntstate_dev);
-          t::Tensor nqval = nqval_dev.to(cpu_device);
-
-          t::Tensor nqselect_dev = rlm.model->forward(ntstate_dev);
-          t::Tensor nqselect = nqselect_dev.to(cpu_device);
-
-          int argmaxq = nqselect.argmax().item().to<int>();
-          float maxq = nqval[argmaxq].item().to<float>();
-
-          t::Tensor y = oqval.clone();
+          t::Tensor oqval_dev = rlm.model->forward(exp.tstate);
+          t::Tensor nqval_dev = targetn->forward(exp.ntstate);
+          t::Tensor nqselect_dev = rlm.model->forward(exp.ntstate);
+          int argmaxq = nqselect_dev.argmax().item().to<int>();
+          float maxq = nqval_dev[argmaxq].item().to<float>();
+          t::Tensor y_dev = oqval_dev.clone();
           if (not exp.ntstate_isterminal){
-            y[(uint)exp.action] = t::scalar_tensor(exp.reward + mp.gamma * maxq);
+            y_dev[(uint)exp.action] = t::scalar_tensor(exp.reward + mp.gamma * maxq, device);
           } else {
-            y[(uint)exp.action] = t::scalar_tensor(exp.reward);
+            y_dev[(uint)exp.action] = t::scalar_tensor(exp.reward, device);
           }
           output_dev[h] = oqval_dev;
-          target[h] = y;
+          target_dev[h] = y_dev;
           h++;
         }
-        t::Tensor target_dev = target.to(device);
         t::Tensor loss_dev = t::mse_loss(output_dev, target_dev.detach());
         loss_dev.backward();
         rlm.optimizer.step();
 
-        if ((i + step_count) % loss_sampling_interval == 0){
-          t::Tensor loss = loss_dev.to(cpu_device);
-          losses.push_back(loss.item().to<float>());
-        }
+        if ((i + step_count) % loss_sampling_interval == 0)
+          losses.push_back(loss_dev.item().to<float>());
       }
 
       step_count++;
