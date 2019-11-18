@@ -1,5 +1,5 @@
-#ifndef RLGAMES_PARALLEL_MCTS_AGENT
-#define RLGAMES_PARALLEL_MCTS_AGENT
+#ifndef RLGAMES_LP_MCTS_AGENT
+#define RLGAMES_LP_MCTS_AGENT
 
 #include <cassert>
 #include <cstdlib>
@@ -23,8 +23,9 @@ namespace rlgames {
 
 //TODO: find faster method than keep doing modulo for random number generation
 
+//Leaf parallel MCTS algorithm, leaf parallel meaning we do MCTS rollouts in parallel
 template <typename RGen, typename Board, typename GameState>
-struct PMCTSAgent : AgentBase<Board, GameState, PMCTSAgent<RGen, Board, GameState>> {
+struct LPMCTSAgent : AgentBase<Board, GameState, LPMCTSAgent<RGen, Board, GameState>> {
   static constexpr float MIN_SCORE = -10.F;
   static constexpr float MAX_SCORE =  10.F;
   static constexpr float TIE_SCORE =  0.F;
@@ -190,7 +191,7 @@ protected:
     }
   }
 public:
-  PMCTSAgent(size_t max_expansion, float exploration_factor, size_t mc_sample_size = 1):
+  LPMCTSAgent(size_t max_expansion, float exploration_factor, size_t mc_sample_size = 1):
     mMaxExpand(max_expansion), mEFactor(exploration_factor), mMCBatchSize(mc_sample_size), mNumThreads(s::thread::hardware_concurrency()) {
     s::srand(unsigned(s::time(0)));
     if (mNumThreads == 0U)
@@ -214,7 +215,7 @@ public:
       s::vector<s::future<float>> futures;
       futures.reserve(mNumThreads);
       for (size_t i = 0; i < mNumThreads; ++i)
-        futures.push_back(s::async(s::launch::async, &PMCTSAgent::batch_mc_play, this, node->gs, pbatchsize));
+        futures.push_back(s::async(s::launch::async, &LPMCTSAgent::batch_mc_play, this, node->gs, pbatchsize));
 
       float qvalue = 0.f;
       for (auto& fut : futures)
@@ -243,4 +244,4 @@ public:
 
 } // rlgames
 
-#endif//RLGAMES_PARALLEL_MCTS_AGENT
+#endif//RLGAMES_LP_MCTS_AGENT
