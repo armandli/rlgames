@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <torch/torch.h>
+
 #include <gridworld.h>
 #include <gridworld_models.h>
 #include <experience.h>
@@ -14,8 +16,8 @@ namespace m = gridworld_pt;
 // test if experience system is functionally correct
 
 TEST(TestExperience, TestExperienceUniqueness1){
+  t::Device device(t::kCPU);
   m::GridEnv env(4, m::GridEnvMode::RandomSimple);
-  //TestModel model(env.state_size(), 164, 150, env.action_size());
   m::GridStateEncoder sencoder(env);
   m::GridActionEncoder aencoder(env);
 
@@ -27,12 +29,12 @@ TEST(TestExperience, TestExperienceUniqueness1){
 
   for (uint i = 0; i < buffer_size; ++i){
     g::GridWorld ins = env.create();
-    t::Tensor tstate = sencoder.encode_state(ins.get_state());
+    t::Tensor tstate = sencoder.encode_state(ins.get_state(), device);
 
     g::Action action = (g::Action)rand_action(reng);
 
     env.apply_action(ins, action);
-    t::Tensor tnstate = sencoder.encode_state(ins.get_state());
+    t::Tensor tnstate = sencoder.encode_state(ins.get_state(), device);
 
     float reward = ins.get_reward();
     bool is_complete = env.is_termination(ins);

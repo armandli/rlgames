@@ -23,9 +23,6 @@ void naive_qlearning(
   t::Device device,
   qlearning_metaparams<epsilon_greedy_metaparams, experience_replay_metaparams> mp,
   s::vector<float>& losses){
-
-  t::Device cpu_device(t::kCPU);
-
   s::uniform_real_distribution<double> dist(0., 1.);
   s::uniform_int_distribution<uint> rand_action(0U, env.action_size() - 1);
   s::default_random_engine reng;

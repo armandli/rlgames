@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <torch/torch.h>
+
 #include <gridworld.h>
 #include <gridworld_models.h>
 
@@ -9,12 +11,13 @@ namespace t = torch;
 namespace m = gridworld_pt;
 
 TEST(TestGridStateEncoder, TestEncode1){
+  t::Device device(t::kCPU);
   uint size = 4;
   m::GridEnv env(size, m::GridEnvMode::StaticSimple);
   m::GridStateEncoder encoder(env);
 
   g::GridWorld ins = env.create();
-  t::Tensor t = encoder.encode_state(ins.get_state());
+  t::Tensor t = encoder.encode_state(ins.get_state(), device);
   EXPECT_EQ(1, t.dim());
   EXPECT_EQ(64, t.sizes()[0]);
 
@@ -44,12 +47,13 @@ TEST(TestGridStateEncoder, TestEncode1){
 }
 
 TEST(TestGridStateEncoder, TestEncode2){
+  t::Device device(t::kCPU);
   uint size = 8;
   m::GridEnv env(size, m::GridEnvMode::StaticSimple);
   m::GridStateEncoder encoder(env);
 
   g::GridWorld ins = env.create();
-  t::Tensor t = encoder.encode_state(ins.get_state());
+  t::Tensor t = encoder.encode_state(ins.get_state(), device);
   EXPECT_EQ(1, t.dim());
   EXPECT_EQ(256, t.sizes()[0]);
 
@@ -79,12 +83,13 @@ TEST(TestGridStateEncoder, TestEncode2){
 }
 
 TEST(TestGridStateEncoder, TestDecode1){
+  t::Device device(t::kCPU);
   uint size = 8;
   m::GridEnv env(size, m::GridEnvMode::StaticSimple);
   m::GridStateEncoder encoder(env);
 
   g::GridWorld ins = env.create();
-  t::Tensor t = encoder.encode_state(ins.get_state());
+  t::Tensor t = encoder.encode_state(ins.get_state(), device);
   g::GridState st = encoder.decode_state(t);
 
   for (uint i = 0; i < size * size; ++i)
@@ -92,28 +97,29 @@ TEST(TestGridStateEncoder, TestDecode1){
 }
 
 TEST(TestGridActionEncoder, TestEncode1){
+  t::Device device(t::kCPU);
   m::GridEnv env(4, m::GridEnvMode::StaticSimple);
   m::GridActionEncoder encoder(env);
 
-  t::Tensor t1 = encoder.encode_action(g::Action::UP);
+  t::Tensor t1 = encoder.encode_action(g::Action::UP, device);
   EXPECT_EQ(1, t1.dim());
   EXPECT_EQ(4, t1.sizes()[0]);
   EXPECT_EQ(1.f, t1[0].item().to<float>());
   EXPECT_EQ(0.f, t1[1].item().to<float>());
 
-  t::Tensor t2 = encoder.encode_action(g::Action::DN);
+  t::Tensor t2 = encoder.encode_action(g::Action::DN, device);
   EXPECT_EQ(1, t2.dim());
   EXPECT_EQ(4, t2.sizes()[0]);
   EXPECT_EQ(1.f, t2[1].item().to<float>());
   EXPECT_EQ(0.f, t2[0].item().to<float>());
 
-  t::Tensor t3 = encoder.encode_action(g::Action::LF);
+  t::Tensor t3 = encoder.encode_action(g::Action::LF, device);
   EXPECT_EQ(1, t3.dim());
   EXPECT_EQ(4, t3.sizes()[0]);
   EXPECT_EQ(1.f, t3[2].item().to<float>());
   EXPECT_EQ(0.f, t3[0].item().to<float>());
 
-  t::Tensor t4 = encoder.encode_action(g::Action::RT);
+  t::Tensor t4 = encoder.encode_action(g::Action::RT, device);
   EXPECT_EQ(1, t4.dim());
   EXPECT_EQ(4, t4.sizes()[0]);
   EXPECT_EQ(1.f, t4[3].item().to<float>());
