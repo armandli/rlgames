@@ -29,10 +29,10 @@ int main(int argc, char* argv[]){
 
   m::GridEnv env(grid_size, m::GridEnvMode::RandomSimple);
   //m::GridEnv env(grid_size, m::GridEnvMode::StaticSimple);
-  //m::RLModel<m::MediumGridModel, m::GridStateEncoder, m::GridActionEncoder, t::optim::Adam> rlm(
-    //m::MediumGridModel(env.state_size(), 200, 150, 100, env.action_size()),
-  m::RLModel<m::SimpleGridModel, m::GridStateEncoder, m::GridActionEncoder, t::optim::Adam> rlm(
-    m::SimpleGridModel(env.state_size(), 164, 150, env.action_size()),
+  //m::RLModel<m::MediumQModel, m::GridStateEncoder, m::GridActionEncoder, t::optim::Adam> rlm(
+    //m::MediumQModel(env.state_size(), 200, 150, 100, env.action_size()),
+  m::RLModel<m::SimpleQModel, m::GridStateEncoder, m::GridActionEncoder, t::optim::Adam> rlm(
+    m::SimpleQModel(env.state_size(), 164, 150, env.action_size()),
     m::GridStateEncoder(env),
     m::GridActionEncoder(env),
     1e-3F

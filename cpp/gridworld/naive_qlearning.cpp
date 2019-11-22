@@ -29,8 +29,8 @@ int main(int argc, char* argv[]){
   }
 
   m::GridEnv env(grid_size, m::GridEnvMode::StaticSimple);
-  m::RLModel<m::SimpleGridModel, m::GridStateEncoder, m::GridActionEncoder, t::optim::Adam> rlm(
-    m::SimpleGridModel(env.state_size(), 164, 150, env.action_size()),
+  m::RLModel<m::SimpleQModel, m::GridStateEncoder, m::GridActionEncoder, t::optim::Adam> rlm(
+    m::SimpleQModel(env.state_size(), 164, 150, env.action_size()),
     m::GridStateEncoder(env),
     m::GridActionEncoder(env),
     1e-4F

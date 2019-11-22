@@ -246,15 +246,15 @@ public:
   }
 };
 
-class SimpleGridModelImpl : public t::nn::Module {
+class SimpleQModelImpl : public t::nn::Module {
   t::nn::Linear l1, l2, l3;
 public:
-  SimpleGridModelImpl(sint64 isz, sint64 l1sz, sint64 l2sz, sint64 osz):
+  SimpleQModelImpl(sint64 isz, sint64 l1sz, sint64 l2sz, sint64 osz):
     l1(register_module("l1", t::nn::Linear(isz, l1sz))),
     l2(register_module("l2", t::nn::Linear(l1sz, l2sz))),
     l3(register_module("l3", t::nn::Linear(l2sz, osz)))
   {}
-  SimpleGridModelImpl(const SimpleGridModelImpl& o):
+  SimpleQModelImpl(const SimpleQModelImpl& o):
     l1(o.l1->options), l2(o.l2->options), l3(o.l3->options)
   {}
 
@@ -265,18 +265,18 @@ public:
     return x;
   }
 };
-TORCH_MODULE(SimpleGridModel);
+TORCH_MODULE(SimpleQModel);
 
-class MediumGridModelImpl : public t::nn::Module {
+class MediumQModelImpl : public t::nn::Module {
   t::nn::Linear l1, l2, l3, l4;
 public:
-  MediumGridModelImpl(sint64 isz, sint64 l1sz, sint64 l2sz, sint64 l3sz, sint64 osz):
+  MediumQModelImpl(sint64 isz, sint64 l1sz, sint64 l2sz, sint64 l3sz, sint64 osz):
     l1(register_module("l1", t::nn::Linear(isz, l1sz))),
     l2(register_module("l2", t::nn::Linear(l1sz, l2sz))),
     l3(register_module("l3", t::nn::Linear(l2sz, l3sz))),
     l4(register_module("l4", t::nn::Linear(l3sz, osz)))
   {}
-  MediumGridModelImpl(const MediumGridModelImpl& o):
+  MediumQModelImpl(const MediumQModelImpl& o):
     l1(o.l1->options), l2(o.l2->options), l3(o.l3->options), l4(o.l4->options)
   {}
 
@@ -288,7 +288,24 @@ public:
     return x;
   }
 };
-TORCH_MODULE(MediumGridModel);
+TORCH_MODULE(MediumQModel);
+
+class SimplePolicyModelImpl : public t::nn::Module {
+  t::nn::Linear l1, l2, l3;
+public:
+  SimplePolicyModelImpl(sint64 isz, sint64 l1sz, sint64 l2sz, sint64 osz):
+    l1(register_module("l1", t::nn::Linear(isz, l1sz))),
+    l2(register_module("l2", t::nn::Linear(l1sz, l2sz))),
+    l3(register_module("l3", t::nn::Linear(l2sz, osz)))
+  {}
+  t::Tensor forward(t::Tensor x){
+    x = t::relu(l1(x));
+    x = t::relu(l2(x));
+    x = t::softmax(l3(x), 1);
+    return x;
+  }
+};
+TORCH_MODULE(SimplePolicyModel);
 
 template <typename NNModel, typename SE, typename AE, typename Optim>
 struct RLModel {
