@@ -6,6 +6,7 @@
 #include <gridworld_models.h>
 #include <experience.h>
 
+#include <ctime>
 #include <iostream>
 
 namespace s = std;
@@ -22,7 +23,7 @@ TEST(TestExperience, TestExperienceUniqueness1){
   m::GridActionEncoder aencoder(env);
 
   s::uniform_int_distribution<uint> rand_action(0U, env.action_size() - 1);
-  s::default_random_engine reng;
+  s::default_random_engine reng(time(NULL));
 
   uint buffer_size = 10;
   m::ExpReplayBuffer<m::Exp<g::Action>> replay_buffer(buffer_size);

@@ -19,11 +19,13 @@ enum class GridEnvMode : uint {
   StaticSimple,
   RandomPlayerLocation,
   RandomSimple,
+  RandomComplex,
 };
 
 class GridEnv {
   uint        mSize;
   GridEnvMode mMode;
+  bool        mUseStepDiscount;
 
   g::GridWorld static_simple_init() const {
     return g::GridWorld(mSize, 1, 1, 1, 0, true);
@@ -38,11 +40,21 @@ class GridEnv {
   g::GridWorld random_simple_init() const {
     return g::GridWorld(mSize, 1, 1, 1, rand(), true);
   }
+
+  g::GridWorld random_complex_init() const {
+    g::GridWorld w(mSize, mSize * 2, 2, 1, rand(), true);
+    while (not w.is_solvable()){
+      w = g::GridWorld(mSize, mSize * 2, 2, 1, rand(), true);
+    }
+    return w;
+  }
 public:
-  GridEnv(uint sz, GridEnvMode mode): mSize(sz), mMode(mode) {
+  GridEnv(uint sz, GridEnvMode mode, bool step_discount = true):
+    mSize(sz), mMode(mode), mUseStepDiscount(step_discount) {
     switch (mMode){
     case GridEnvMode::RandomPlayerLocation:
     case GridEnvMode::RandomSimple:
+    case GridEnvMode::RandomComplex:
       s::srand(time(0));
     default:;
     }
@@ -56,6 +68,8 @@ public:
       return random_player_location_init();
     case GridEnvMode::RandomSimple:
       return random_simple_init();
+    case GridEnvMode::RandomComplex:
+      return random_complex_init();
     default: assert(false);
     }
   }
@@ -78,9 +92,12 @@ public:
 
   float get_reward(const g::GridWorld& ins) const {
     float reward = ins.get_reward();
-    if (reward == 0)
-      return -1.;
-    else
+    if (reward == 0){
+      if (mUseStepDiscount)
+        return -1.;
+      else
+        return 0.;
+    } else
       return reward * 2;
   }
 
@@ -301,11 +318,53 @@ public:
   t::Tensor forward(t::Tensor x){
     x = t::relu(l1(x));
     x = t::relu(l2(x));
-    x = t::softmax(l3(x), 1);
+    x = t::softmax(l3(x), 0);
     return x;
   }
 };
 TORCH_MODULE(SimplePolicyModel);
+
+struct ACTensor {
+  t::Tensor actor_out;
+  t::Tensor critic_out;
+
+  ACTensor() = default;
+  ACTensor(t::Tensor ao, t::Tensor co): actor_out(ao), critic_out(co) {}
+};
+
+class SimpleActorCriticModelImpl : public t::nn::Module {
+  t::nn::Linear l1, l2, l3a, l3c, l4c;
+public:
+  SimpleActorCriticModelImpl(sint64 isz, sint64 l1sz, sint64 l2sz, sint64 l3csz, sint64 oasz, sint64 ocsz):
+    l1(register_module("l1", t::nn::Linear(isz, l1sz))),
+    l2(register_module("l2", t::nn::Linear(l1sz, l2sz))),
+    l3a(register_module("l3a", t::nn::Linear(l2sz, oasz))),
+    l3c(register_module("l3c", t::nn::Linear(l2sz, l3csz))),
+    l4c(register_module("l4c", t::nn::Linear(l3csz, ocsz)))
+  {}
+  t::Tensor actor_forward(t::Tensor x){
+    x = t::relu(l1(x));
+    x = t::relu(l2(x));
+    t::Tensor ao = t::softmax(l3a(x), 0);
+    return ao;
+  }
+  t::Tensor critic_forward(t::Tensor x){
+    x = t::relu(l1(x));
+    x = t::relu(l2(x));
+    t::Tensor co = t::relu(l3c(x.detach())); //no backprop
+    co = t::tanh(l4c(co));
+    return co;
+  }
+  ACTensor forward(t::Tensor x){
+    x = t::relu(l1(x));
+    x = t::relu(l2(x));
+    t::Tensor ao = t::softmax(l3a(x), 0);
+    t::Tensor co = t::relu(l3c(x.detach()));  //no backprop
+    co = t::tanh(l4c(co));
+    return ACTensor(ao, co);
+  }
+};
+TORCH_MODULE(SimpleActorCriticModel);
 
 template <typename NNModel, typename SE, typename AE, typename Optim>
 struct RLModel {

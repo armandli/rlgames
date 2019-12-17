@@ -33,7 +33,7 @@ int main(int argc, char* argv[]){
     m::SimpleQModel(env.state_size(), 164, 150, env.action_size()),
     m::GridStateEncoder(env),
     m::GridActionEncoder(env),
-    1e-4F
+    1e-4F // learning rate
   );
   m::qlearning_metaparams<m::epsilon_greedy_metaparams, m::experience_replay_metaparams> mp;
   mp.epochs = 1000;
@@ -49,7 +49,8 @@ int main(int argc, char* argv[]){
     rlm,
     device,
     mp,
-    losses
+    losses,
+    time(NULL)
   );
 
   m::simulate_gridworld(env, rlm, env.state_size() / 4 / 2, device, true);

@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <vector>
+#include <queue>
 #include <unordered_set>
 #include <set>
 #include <algorithm>
@@ -50,6 +51,30 @@ enum class Action: ubyte {
   MAX,
 };
 
+void all_next_pts(Pt* out, Pt p, uint size){
+  for (ubyte i = (ubyte)Action::UP; i < (ubyte)Action::MAX; ++i){
+    Pt m = p;
+    switch (i){
+    case (ubyte)Action::UP:
+      m.i = s::min(m.i - 1, size);
+      m.i %= size;
+      break;
+    case (ubyte)Action::DN:
+      m.i = s::min(m.i + 1, size - 1);
+      break;
+    case (ubyte)Action::LF:
+      m.j = s::min(m.j - 1, size);
+      m.j %= size;
+      break;
+    case (ubyte)Action::RT:
+      m.j = s::min(m.j + 1, size - 1);
+      break;
+    default: assert(false);
+    }
+    out[i] = m;
+  }
+}
+
 enum class Obj: ubyte {
   Empty,
   Player,
@@ -63,6 +88,7 @@ enum class Obj: ubyte {
 class GridState {
   uint           mSize;
   s::vector<Obj> mMap;
+
   uint to_index(Pt c) const {
     return c.i * mSize + c.j;
   }
@@ -127,6 +153,42 @@ public:
       case Obj::PG:     return true;
       default:;         //do nothing
       }
+    return false;
+  }
+
+  bool is_solvable(Pt start) const {
+    s::vector<bool> seen(mMap.size(), false);
+    s::queue<Pt> q; q.push(start);
+    Pt next_moves[(uint)Action::MAX];
+
+    while (not q.empty()){
+      Pt pt = q.front(); q.pop();
+      uint idx = to_index(pt);
+      switch (mMap[idx]){
+      case Obj::Goal:
+      case Obj::PG:
+        return true;
+      default:; //do nothing
+      }
+      seen[idx] = true;
+      all_next_pts(next_moves, pt, mSize);
+      for (uint i = 0; i < mSize; ++i){
+        uint nidx = to_index(next_moves[i]);
+        if (seen[nidx]) continue;
+        switch (mMap[nidx]){
+        case Obj::Empty:
+        case Obj::Player:
+        case Obj::Goal:
+        case Obj::PG:
+          q.push(next_moves[i]);
+          break;
+        case Obj::Wall:
+        case Obj::Sink:
+        case Obj::PS:
+          continue;
+        }
+      }
+    }
     return false;
   }
 
@@ -250,6 +312,10 @@ public:
     return false;
   }
 
+  bool is_solvable() const {
+    return mState.is_solvable(mPlayer);
+  }
+
   int get_reward() const {
     int max_reward = mSize * mSize;
 
@@ -279,7 +345,7 @@ public:
       break;
     case Action::DN:
       nc.i = s::min(nc.i + 1, mSize - 1);
-      nc.i = nc.i % mSize;
+      //nc.i = nc.i % mSize;
       break;
     case Action::LF:
       nc.j = s::min(nc.j - 1, mSize);
@@ -287,7 +353,7 @@ public:
       break;
     case Action::RT:
       nc.j = s::min(nc.j + 1, mSize - 1);
-      nc.j = nc.j % mSize;
+      //nc.j = nc.j % mSize;
       break;
     default: assert(false);
     }

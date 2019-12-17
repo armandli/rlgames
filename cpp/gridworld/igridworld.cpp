@@ -17,6 +17,11 @@ int main(int argc, char* argv[]){
   GridWorld world(dp[0], dp[1], dp[2], dp[3], dp[4]);
   world.print(cout);
 
+  if (not world.is_solvable()){
+    s::cout << "Not solvale" << s::endl;
+    return 0;
+  }
+
   while (not world.is_complete()){
     uint aidx; cin >> aidx;
     assert(aidx < sizeof(action_map));
