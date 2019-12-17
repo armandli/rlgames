@@ -39,7 +39,7 @@ int main(int argc, char* argv[]){
     1e-5F // learning rate
   );
   m::pg_metaparams mp;
-  mp.epochs = 5000;
+  mp.epochs = 20000;
   mp.gamma = 0.99;
   mp.max_steps = env.state_size() / 4;
   s::vector<float> losses;
@@ -55,9 +55,8 @@ int main(int argc, char* argv[]){
 
   m::simulate_gridworld(env, rlm, env.state_size() / 4, device, true);
 
-  //TODO
-  //uint non_zero_loss_count = std::accumulate(losses.begin(), losses.end(), [](float v){ return v - 0.F < 1e-7F });
-  //s::cout << "Number of times goal/sink reached: " << non_zero_loss_count << s::endl;
+  uint non_zero_loss_count = std::accumulate(losses.begin(), losses.end(), 0U, [](uint acc, float v){ return acc + (s::abs(v) > 1e-7F); });
+  s::cout << "Number of times goal/sink reached: " << non_zero_loss_count << s::endl;
 
   int sum = 0;
   int win_count = 0;

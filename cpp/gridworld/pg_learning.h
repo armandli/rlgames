@@ -32,7 +32,6 @@ void pg_learning(
   for (uint64 i = 0; i < mp.epochs; ++i){
     INS ins = env.create();
     uint64 step_count = 0;
-    //t::Tensor states_dev = t::zeros({(uint)mp.max_steps, env.state_size()}, device);
     t::Tensor action_dev = t::zeros({(uint)mp.max_steps}, device);
     s::vector<float> reward_vec(mp.max_steps);
     float reward_accum = 0.0F;
@@ -42,7 +41,6 @@ void pg_learning(
       t::Tensor tadist = tadist_dev.to(cpu_device);
       ACTION action = (ACTION)sample_discrete_distribution(tadist.data_ptr<float>(), env.action_size(), reng);
       env.apply_action(ins, action);
-      //states_dev[step_count] = tstate_dev;
       action_dev[step_count] = tadist_dev[(uint)action];
       reward_accum += env.get_reward(ins);
       reward_vec[step_count] = reward_accum;
@@ -53,12 +51,12 @@ void pg_learning(
     //higher discount on earlier action than later action
     for (uint64 i = step_count - 1, pow = 0; i < step_count; --i, ++pow)
       discount_vec[i] = s::pow(mp.gamma, pow);
-    t::Tensor discount = t::from_blob(discount_vec.data(), {(uint)step_count});
+    t::Tensor discount_dev = t::from_blob(discount_vec.data(), {(uint)step_count}, device);
     //rewards are supposed to be sum of future rewards, not historically accumulated rewards
     for (uint64 i = step_count - 2; i < mp.max_steps; --i)
       reward_vec[i] = reward_vec[i+1] - reward_vec[i];
-    t::Tensor reward = t::from_blob(reward_vec.data(), {(uint)step_count});
-    t::Tensor reward_dev = discount.to(device) * reward.to(device);
+    t::Tensor reward_dev = t::from_blob(reward_vec.data(), {(uint)step_count}, device);
+    reward_dev = discount_dev * reward_dev;
     //to reduce variance, we normalize the reward value
     reward_dev = (reward_dev - reward_dev.mean()) / (reward_dev.std() + 1e-07);
 

@@ -318,7 +318,7 @@ public:
   t::Tensor forward(t::Tensor x){
     x = t::relu(l1(x));
     x = t::relu(l2(x));
-    x = t::softmax(l3(x), 0);
+    x = t::softmax(l3(x), -1);
     return x;
   }
 };
@@ -345,7 +345,7 @@ public:
   t::Tensor actor_forward(t::Tensor x){
     x = t::relu(l1(x));
     x = t::relu(l2(x));
-    t::Tensor ao = t::softmax(l3a(x), 0);
+    t::Tensor ao = t::softmax(l3a(x), -1);
     return ao;
   }
   t::Tensor critic_forward(t::Tensor x){
@@ -358,8 +358,8 @@ public:
   ACTensor forward(t::Tensor x){
     x = t::relu(l1(x));
     x = t::relu(l2(x));
-    t::Tensor ao = t::softmax(l3a(x), 0);
-    t::Tensor co = t::relu(l3c(x.detach()));  //no backprop
+    t::Tensor ao = t::softmax(l3a(x), -1);
+    t::Tensor co = t::relu(l3c(x.detach())); //no backprop
     co = t::tanh(l4c(co));
     return ACTensor(ao, co);
   }
