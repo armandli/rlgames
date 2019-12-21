@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <vector>
+#include <random>
 
 namespace gridworld_pt {
 
@@ -29,6 +30,12 @@ void copy_state(MODULE dst, MODULE src){
     dst_buffers[i].copy_(src_buffers[i]);
 
   t::autograd::GradMode::set_enabled(true);
+}
+
+template <typename ENG>
+uint sample_discrete_distribution(float* probabilities, size_t size, ENG& eng){
+  s::discrete_distribution<uint> dist(probabilities, probabilities + size);
+  return dist(eng);
 }
 
 } // gridworld_pt

@@ -22,10 +22,11 @@ void naive_qlearning(
   RLM& rlm,
   t::Device device,
   qlearning_metaparams<epsilon_greedy_metaparams, experience_replay_metaparams>& mp,
-  s::vector<float>& losses){
+  s::vector<float>& losses,
+  uint64 random_seed){
   s::uniform_real_distribution<double> dist(0., 1.);
   s::uniform_int_distribution<uint> rand_action(0U, env.action_size() - 1);
-  s::default_random_engine reng;
+  s::default_random_engine reng(random_seed);
 
   rlm.model->to(device);
 

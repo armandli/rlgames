@@ -6,6 +6,7 @@
 
 #include <torch/torch.h>
 
+#include <ctime>
 #include <vector>
 #include <iostream>
 
@@ -35,7 +36,7 @@ int main(int argc, char* argv[]){
     m::SimpleQModel(env.state_size(), 164, 150, env.action_size()),
     m::GridStateEncoder(env),
     m::GridActionEncoder(env),
-    1e-3F
+    1e-3F //learning rate
   );
   m::qlearning_metaparams<m::epsilon_greedy_metaparams, m::experience_replay_metaparams> mp;
   mp.epochs = 5000;
@@ -47,15 +48,16 @@ int main(int argc, char* argv[]){
   mp.erb.batchsize = 250;
   s::vector<float> losses;
 
-  m::deep_qlearning<decltype(env), decltype(rlm), g::GridWorld, g::Action, m::ExpReplayBuffer<m::Exp<g::Action>>>(
+  m::deep_qlearning<decltype(env), decltype(rlm), g::GridWorld, g::Action>(
     env,
     rlm,
     device,
     mp,
-    losses
+    losses,
+    time(NULL)
   );
 
-  m::simulate_gridworld(env, rlm, env.state_size() / 4, device, true);
+  m::simulate_gridworld(env, rlm, env.state_size() / 4 / 2, device, true);
 
   if (losses.size() > 0){
     s::cout << "Final Loss: " << losses.back() << s::endl;

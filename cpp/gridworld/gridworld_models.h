@@ -9,6 +9,7 @@
 #include <ctime>
 #include <cstdlib>
 #include <memory>
+#include <unordered_set>
 
 namespace gridworld_pt {
 
@@ -19,11 +20,14 @@ enum class GridEnvMode : uint {
   StaticSimple,
   RandomPlayerLocation,
   RandomSimple,
+  RandomComplex,
+  RandomMaze,
 };
 
 class GridEnv {
   uint        mSize;
   GridEnvMode mMode;
+  bool        mUseStepDiscount;
 
   g::GridWorld static_simple_init() const {
     return g::GridWorld(mSize, 1, 1, 1, 0, true);
@@ -38,11 +42,113 @@ class GridEnv {
   g::GridWorld random_simple_init() const {
     return g::GridWorld(mSize, 1, 1, 1, rand(), true);
   }
+
+  g::GridWorld random_complex_init() const {
+    g::GridWorld w(mSize, mSize * 2, 2, 1, rand(), true);
+    while (not w.is_solvable()){
+      w = g::GridWorld(mSize, mSize * 2, 2, 1, rand(), true);
+    }
+    return w;
+  }
+
+  g::GridWorld random_maze_init(uint gfactor) const {
+    assert(mSize > 1);
+
+    g::GridWorld w(mSize, 0, 0, 0, rand(), true);
+    w.remove_player();
+    const g::GridState& ws = w.get_state();
+    s::vector<uint> empties;
+    s::unordered_set<uint> connections;
+    {
+      s::set<uint> walls;
+      while (s::rand() % gfactor != 0){
+        uint v = s::rand() % mSize;
+        if (walls.find(v) == walls.end()){
+          walls.insert(v);
+          w.set_wall(g::Pt(0, v));
+        }
+      }
+      for (uint i = 0; i < mSize; ++i)
+        if (ws.get(g::Pt(0, i)) == g::Obj::Empty)
+          empties.push_back(i);
+    }
+    for (uint i = 1; i < mSize; ++i){
+      do {
+        //add random vertical path
+        while (s::rand() % gfactor != 0 && empties.size() > 0){
+          uint v = s::rand() % empties.size();
+          connections.insert(empties[v]);
+        }
+
+        s::vector<bool> connected(empties.size(), false);
+        for (uint connection : connections){
+          uint j = 0;
+          for (; j < empties.size(); ++j)
+            if (empties[j] == connection){
+              connected[j] = true;
+              break;
+            }
+          for (uint k = j+1; k < empties.size(); ++k)
+            if (empties[k] - empties[k-1] == 1)
+              connected[k] = true;
+            else
+              break;
+          for (uint k = j-1; k < empties.size(); --k)
+            if (empties[k+1] - empties[k] == 1)
+              connected[k] = true;
+            else
+              break;
+        }
+        s::vector<uint> new_empty;
+        for (uint j = 0; j < connected.size(); ++j)
+          if (connected[j] == false)
+            new_empty.push_back(empties[j]);
+        empties = new_empty;
+      } while (not empties.empty());
+
+      //add random horizontal path
+      {
+        uint prev_connection = -1;
+        //TODO: does this give you ordered values ?
+        for (uint connection : connections){
+          if (prev_connection != (uint)-1 && s::rand() % gfactor != 0){
+            for (uint j = prev_connection + 1; j < connection; ++j)
+              connections.insert(j);
+          }
+          prev_connection = connection;
+        }
+      }
+
+      for (uint j = 0; j < mSize; ++j)
+        if (connections.find(j) == connections.end())
+          w.set_wall(g::Pt(i, j));
+      connections.clear();
+      for (uint j = 0; j < mSize; ++j)
+        if (ws.get(g::Pt(i, j)) == g::Obj::Empty)
+          empties.push_back(j);
+    }
+
+    // set player and goal locations
+    // TODO: not working, need better way to find player and goal location
+    while (not w.set_player_location(g::Pt(s::rand() % mSize, s::rand() % mSize)));
+    while (not w.set_goal_location(g::Pt(s::rand() % mSize, s::rand() % mSize)));
+    return w;
+  }
+
+  g::GridWorld random_maze_init_check(uint gfactor) const {
+    g::GridWorld w = random_maze_init(gfactor);
+    while (not w.is_solvable())
+      w = random_maze_init(gfactor);
+    return w;
+  }
 public:
-  GridEnv(uint sz, GridEnvMode mode): mSize(sz), mMode(mode) {
+  GridEnv(uint sz, GridEnvMode mode, bool step_discount = true):
+    mSize(sz), mMode(mode), mUseStepDiscount(step_discount) {
     switch (mMode){
     case GridEnvMode::RandomPlayerLocation:
     case GridEnvMode::RandomSimple:
+    case GridEnvMode::RandomComplex:
+    case GridEnvMode::RandomMaze:
       s::srand(time(0));
     default:;
     }
@@ -56,6 +162,10 @@ public:
       return random_player_location_init();
     case GridEnvMode::RandomSimple:
       return random_simple_init();
+    case GridEnvMode::RandomComplex:
+      return random_complex_init();
+    case GridEnvMode::RandomMaze:
+      return random_maze_init_check(mSize * 2);
     default: assert(false);
     }
   }
@@ -78,9 +188,12 @@ public:
 
   float get_reward(const g::GridWorld& ins) const {
     float reward = ins.get_reward();
-    if (reward == 0)
-      return -1.;
-    else
+    if (reward == 0){
+      if (mUseStepDiscount)
+        return -1.;
+      else
+        return 0.;
+    } else
       return reward * 2;
   }
 
@@ -301,11 +414,53 @@ public:
   t::Tensor forward(t::Tensor x){
     x = t::relu(l1(x));
     x = t::relu(l2(x));
-    x = t::softmax(l3(x), 1);
+    x = t::softmax(l3(x), -1);
     return x;
   }
 };
 TORCH_MODULE(SimplePolicyModel);
+
+struct ACTensor {
+  t::Tensor actor_out;
+  t::Tensor critic_out;
+
+  ACTensor() = default;
+  ACTensor(t::Tensor ao, t::Tensor co): actor_out(ao), critic_out(co) {}
+};
+
+class SimpleActorCriticModelImpl : public t::nn::Module {
+  t::nn::Linear l1, l2, l3a, l3c, l4c;
+public:
+  SimpleActorCriticModelImpl(sint64 isz, sint64 l1sz, sint64 l2sz, sint64 l3csz, sint64 oasz, sint64 ocsz):
+    l1(register_module("l1", t::nn::Linear(isz, l1sz))),
+    l2(register_module("l2", t::nn::Linear(l1sz, l2sz))),
+    l3a(register_module("l3a", t::nn::Linear(l2sz, oasz))),
+    l3c(register_module("l3c", t::nn::Linear(l2sz, l3csz))),
+    l4c(register_module("l4c", t::nn::Linear(l3csz, ocsz)))
+  {}
+  t::Tensor actor_forward(t::Tensor x){
+    x = t::relu(l1(x));
+    x = t::relu(l2(x));
+    t::Tensor ao = t::softmax(l3a(x), -1);
+    return ao;
+  }
+  t::Tensor critic_forward(t::Tensor x){
+    x = t::relu(l1(x));
+    x = t::relu(l2(x));
+    t::Tensor co = t::relu(l3c(x.detach())); //no backprop
+    co = t::tanh(l4c(co));
+    return co;
+  }
+  ACTensor forward(t::Tensor x){
+    x = t::relu(l1(x));
+    x = t::relu(l2(x));
+    t::Tensor ao = t::softmax(l3a(x), -1);
+    t::Tensor co = t::relu(l3c(x.detach())); //no backprop
+    co = t::tanh(l4c(co));
+    return ACTensor(ao, co);
+  }
+};
+TORCH_MODULE(SimpleActorCriticModel);
 
 template <typename NNModel, typename SE, typename AE, typename Optim>
 struct RLModel {

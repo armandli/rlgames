@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <vector>
+#include <queue>
 #include <unordered_set>
 #include <set>
 #include <algorithm>
@@ -12,6 +13,8 @@
 #include <type_alias.h>
 
 namespace s = std;
+
+namespace gridworld_pt { class GridEnv; }
 
 namespace gridworld {
 
@@ -50,6 +53,30 @@ enum class Action: ubyte {
   MAX,
 };
 
+void all_next_pts(Pt* out, Pt p, uint size){
+  for (ubyte i = (ubyte)Action::UP; i < (ubyte)Action::MAX; ++i){
+    Pt m = p;
+    switch (i){
+    case (ubyte)Action::UP:
+      m.i = s::min(m.i - 1, size);
+      m.i %= size;
+      break;
+    case (ubyte)Action::DN:
+      m.i = s::min(m.i + 1, size - 1);
+      break;
+    case (ubyte)Action::LF:
+      m.j = s::min(m.j - 1, size);
+      m.j %= size;
+      break;
+    case (ubyte)Action::RT:
+      m.j = s::min(m.j + 1, size - 1);
+      break;
+    default: assert(false);
+    }
+    out[i] = m;
+  }
+}
+
 enum class Obj: ubyte {
   Empty,
   Player,
@@ -63,6 +90,7 @@ enum class Obj: ubyte {
 class GridState {
   uint           mSize;
   s::vector<Obj> mMap;
+
   uint to_index(Pt c) const {
     return c.i * mSize + c.j;
   }
@@ -130,6 +158,42 @@ public:
     return false;
   }
 
+  bool is_solvable(Pt start) const {
+    s::vector<bool> seen(mMap.size(), false);
+    s::queue<Pt> q; q.push(start);
+    Pt next_moves[(uint)Action::MAX];
+
+    while (not q.empty()){
+      Pt pt = q.front(); q.pop();
+      uint idx = to_index(pt);
+      switch (mMap[idx]){
+      case Obj::Goal:
+      case Obj::PG:
+        return true;
+      default:; //do nothing
+      }
+      seen[idx] = true;
+      all_next_pts(next_moves, pt, mSize);
+      for (uint i = 0; i < (uint)Action::MAX; ++i){
+        uint nidx = to_index(next_moves[i]);
+        if (seen[nidx]) continue;
+        switch (mMap[nidx]){
+        case Obj::Empty:
+        case Obj::Player:
+        case Obj::Goal:
+        case Obj::PG:
+          q.push(next_moves[i]);
+          break;
+        case Obj::Wall:
+        case Obj::Sink:
+        case Obj::PS:
+          continue;
+        }
+      }
+    }
+    return false;
+  }
+
   s::ostream& print(s::ostream& out) const {
     for (uint i = 0; i < mSize; ++i)
       out << '-';
@@ -171,6 +235,10 @@ public:
   }
 };
 
+s::ostream& operator<<(s::ostream& out, const GridState& state){
+  return state.print(out);
+}
+
 //TODO: abstract a set interface so we can switch to different set implementations
 template <typename T>
 using Set = s::set<T>;
@@ -184,6 +252,8 @@ class GridWorld {
   Set<Pt>   mSinks;
   Set<Pt>   mGoals;
   bool      mUseStepCount;
+
+  friend class gridworld_pt::GridEnv;
 
   void initialize_state(){
     mState.set_cell(Obj::Player, mPlayer);
@@ -222,6 +292,15 @@ class GridWorld {
 
     initialize_state();
   }
+
+  void set_wall(Pt c){
+    mWalls.insert(c);
+    mState.set_cell(Obj::Wall, c);
+  }
+
+  void remove_player(){
+    mState.clear_cell(mPlayer);
+  }
 public:
   GridWorld(uint sz, uint num_walls, uint num_sinks, uint num_goals, uint seed = 0U, bool discount_steps = false):
     mStepCount(0), mSize(sz), mState(sz), mUseStepCount(discount_steps) {
@@ -248,6 +327,10 @@ public:
     decltype(mGoals.begin()) giter = mGoals.find(mPlayer);
     if (giter != mGoals.end()) return true;
     return false;
+  }
+
+  bool is_solvable() const {
+    return mState.is_solvable(mPlayer);
   }
 
   int get_reward() const {
@@ -279,7 +362,6 @@ public:
       break;
     case Action::DN:
       nc.i = s::min(nc.i + 1, mSize - 1);
-      nc.i = nc.i % mSize;
       break;
     case Action::LF:
       nc.j = s::min(nc.j - 1, mSize);
@@ -287,7 +369,6 @@ public:
       break;
     case Action::RT:
       nc.j = s::min(nc.j + 1, mSize - 1);
-      nc.j = nc.j % mSize;
       break;
     default: assert(false);
     }
@@ -302,17 +383,32 @@ public:
 
   bool set_player_location(Pt c){
     decltype(mWalls.begin()) witer = mWalls.find(c);
-    if (witer == mWalls.end()) return false;
+    if (witer != mWalls.end()) return false;
     decltype(mSinks.begin()) siter = mSinks.find(c);
-    if (siter == mSinks.end()) return false;
+    if (siter != mSinks.end()) return false;
     decltype(mGoals.begin()) giter = mGoals.find(c);
-    if (giter == mGoals.end()) return false;
+    if (giter != mGoals.end()) return false;
     mState.clear_cell(mPlayer);
     mPlayer = c;
     mState.set_cell(Obj::Player, mPlayer);
     return true;
   }
+
+  bool set_goal_location(Pt c){
+    decltype(mWalls.begin()) witer = mWalls.find(c);
+    if (witer != mWalls.end()) return false;
+    decltype(mSinks.begin()) siter = mSinks.find(c);
+    if (siter != mSinks.end()) return false;
+    if (c == mPlayer) return false;
+    mGoals.insert(c);
+    mState.set_cell(Obj::Goal, c);
+    return true;
+  }
 };
+
+s::ostream& operator<<(s::ostream& out, const GridWorld& world){
+  return world.print(out);
+}
 
 } // gridworld
 

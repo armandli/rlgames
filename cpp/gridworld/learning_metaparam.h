@@ -30,6 +30,15 @@ struct pg_metaparams {
   uint64 max_steps;
 };
 
+template <typename ERBParams>
+struct ac_metaparams {
+  uint64 epochs;
+  double gamma;
+  uint64 max_steps;
+  uint64 tc_steps;
+  ERBParams erb;
+};
+
 } // gridworld_pt
 
 #endif//GRIDWORLD_LEARNING_PARAM

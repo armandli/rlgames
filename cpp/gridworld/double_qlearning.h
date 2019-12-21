@@ -1,8 +1,9 @@
 #ifndef GRIDWORLD_DOUBLE_QLEARNING
 #define GRIDWORLD_DOUBLE_QLEARNING
 
-#include <pytorch_util.h>
+#include <learning_util.h>
 #include <learning_metaparam.h>
+#include <experience_util.h>
 #include <experience.h>
 
 #include <torch/torch.h>
@@ -25,16 +26,17 @@ namespace t = torch;
 //Optimization 3: Uses experience replay buffer
 //Optimization 4: Use current network for action selection, use target network for its action value
 
-template <typename ENV, typename RLM, typename INS, typename ACTION, typename ERB, uint loss_sampling_interval = 100>
+template <typename ENV, typename RLM, typename INS, typename ACTION, uint loss_sampling_interval = 100>
 void double_qlearning(
   ENV& env,
   RLM& rlm,
   t::Device device,
   qlearning_metaparams<epsilon_greedy_metaparams, experience_replay_metaparams>& mp,
-  s::vector<float>& losses){
+  s::vector<float>& losses,
+  uint64 random_seed){
   s::uniform_real_distribution<double> dist(0., 1.);
   s::uniform_int_distribution<uint> rand_action(0U, env.action_size() - 1);
-  s::default_random_engine reng;
+  s::default_random_engine reng(random_seed);
 
   ExpReplayBuffer<Exp<ACTION>> replay_buffer(mp.erb.sz);
 
