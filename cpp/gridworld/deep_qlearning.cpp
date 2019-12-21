@@ -48,7 +48,7 @@ int main(int argc, char* argv[]){
   mp.erb.batchsize = 250;
   s::vector<float> losses;
 
-  m::deep_qlearning<decltype(env), decltype(rlm), g::GridWorld, g::Action, m::ExpReplayBuffer<m::Exp<g::Action>>>(
+  m::deep_qlearning<decltype(env), decltype(rlm), g::GridWorld, g::Action>(
     env,
     rlm,
     device,

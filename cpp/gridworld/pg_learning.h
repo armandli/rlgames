@@ -46,24 +46,23 @@ void pg_learning(
       reward_vec[step_count] = reward_accum;
       step_count++;
     }
-    //TODO: maybe there is a torch built-in loss function we can use instead ?
     s::vector<float> discount_vec(step_count);
     //higher discount on earlier action than later action
     for (uint64 i = step_count - 1, pow = 0; i < step_count; --i, ++pow)
       discount_vec[i] = s::pow(mp.gamma, pow);
-    t::Tensor discount_dev = t::from_blob(discount_vec.data(), {(uint)step_count}, device);
+    t::Tensor discount = t::from_blob(discount_vec.data(), {(uint)step_count});
+    t::Tensor discount_dev = discount.to(device);
     //rewards are supposed to be sum of future rewards, not historically accumulated rewards
     for (uint64 i = step_count - 2; i < mp.max_steps; --i)
       reward_vec[i] = reward_vec[i+1] - reward_vec[i];
-    t::Tensor reward_dev = t::from_blob(reward_vec.data(), {(uint)step_count}, device);
+    t::Tensor reward = t::from_blob(reward_vec.data(), {(uint)step_count});
+    t::Tensor reward_dev = reward.to(device);
     reward_dev = discount_dev * reward_dev;
     //to reduce variance, we normalize the reward value
     reward_dev = (reward_dev - reward_dev.mean()) / (reward_dev.std() + 1e-07);
-
-    //states_dev = states_dev.slice(0, 0, step_count);
     action_dev = action_dev.slice(0, 0, step_count);
+    t::Tensor loss_dev = t::mean(-1.F * reward_dev.detach() * t::log(action_dev));
 
-    t::Tensor loss_dev = -1.F * t::sum(reward_dev.detach() * t::log(action_dev));
     loss_dev.backward();
     rlm.optimizer.step();
 

@@ -1,7 +1,7 @@
 #include <gridworld.h>
 #include <gridworld_models.h>
 #include <learning_metaparam.h>
-#include <double_qlearning.h>
+#include <double_qlearning2.h>
 #include <gridworld_simulation.h>
 
 #include <torch/torch.h>
@@ -48,7 +48,7 @@ int main(int argc, char* argv[]){
   mp.erb.batchsize = 250;
   s::vector<float> losses;
 
-  m::double_qlearning<decltype(env), decltype(rlm), g::GridWorld, g::Action>(
+  m::double_qlearning2<decltype(env), decltype(rlm), g::GridWorld, g::Action>(
     env,
     rlm,
     device,

@@ -10,24 +10,12 @@
 
 #include <type_alias.h>
 
+#include <experience_util.h>
+
 namespace gridworld_pt {
 
 namespace s = std;
 namespace t = torch;
-
-template <typename ACTION>
-struct Exp {
-  t::Tensor tstate;
-  t::Tensor ntstate;
-  float     reward;
-  ACTION    action;
-  bool      ntstate_isterminal;
-
-  Exp(): tstate(), ntstate(), reward(0.f), action((ACTION)0), ntstate_isterminal(false) {}
-  Exp(t::Tensor st, ACTION a, float r, t::Tensor nst, bool isterm):
-    tstate(st), ntstate(nst), reward(r), action(a), ntstate_isterminal(isterm)
-  {}
-};
 
 template <typename Exp> class ExpReplayBuffer;
 

@@ -3,6 +3,7 @@
 
 #include <learning_util.h>
 #include <learning_metaparam.h>
+#include <experience_util.h>
 #include <experience.h>
 
 #include <torch/torch.h>
@@ -25,7 +26,7 @@ namespace t = torch;
 //Optimization 3: Uses experience replay buffer
 //Optimization 4: Use current network for action selection, use target network for its action value
 
-template <typename ENV, typename RLM, typename INS, typename ACTION, typename ERB, uint loss_sampling_interval = 100>
+template <typename ENV, typename RLM, typename INS, typename ACTION, uint loss_sampling_interval = 100>
 void double_qlearning(
   ENV& env,
   RLM& rlm,
