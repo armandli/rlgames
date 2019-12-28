@@ -87,8 +87,8 @@ template <ubyte SZ> struct GoAreaScore;
 template <ubyte SZ>
 struct GoBoard : Board<GoBoard<SZ>> {
   friend struct GoAreaScore<SZ>;
-  static constexpr uint SIZE = SZ;
-  static constexpr uint IZ = SZ * SZ;
+  static constexpr uint SIZE   = SZ;
+  static constexpr uint IZ     = SZ * SZ;
   static constexpr udyte EMPTY = 0xFFFFU;
 private:
   bag<GoStr<SZ>>      mStrings;
@@ -409,12 +409,6 @@ protected:
     const GoStr<SZ>* string = test_board.get_string(move.mpt);
     return string->num_liberties() == 0;
   }
-  bool does_move_violate_ko(Move move) const {
-    if (move.mty != M::Play) return false;
-    GoBoard<SZ> test_board = mBoard;
-    test_board.place_stone(mNPlayer, move.mpt);
-    return mHistory.find(test_board.hash()) != s::end(mHistory);
-  }
 public:
   GoGameState():
     mBoard(), mNPlayer(Player::Black), mPMove(M::Unknown), mPPMove(M::Unknown), mHistory() {}
@@ -448,6 +442,12 @@ public:
     if (mPMove.mty == M::Resign)   return true;
     if (mPPMove.mty == M::Unknown) return false;
     return (mPMove.mty == M::Pass && mPPMove.mty == M::Pass);
+  }
+  bool does_move_violate_ko(Move move) const {
+    if (move.mty != M::Play) return false;
+    GoBoard<SZ> test_board = mBoard;
+    test_board.place_stone(mNPlayer, move.mpt);
+    return mHistory.find(test_board.hash()) != s::end(mHistory);
   }
   bool is_valid_move(Move move) const {
     if (is_over())                                    return false;

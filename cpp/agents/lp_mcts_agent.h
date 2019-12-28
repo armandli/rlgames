@@ -1,5 +1,5 @@
-#ifndef RLGAMES_MCTS_AGENT
-#define RLGAMES_MCTS_AGENT
+#ifndef RLGAMES_LP_MCTS_AGENT
+#define RLGAMES_LP_MCTS_AGENT
 
 #include <cassert>
 #include <cstdlib>
@@ -9,11 +9,13 @@
 #include <set>
 #include <vector>
 #include <algorithm>
+#include <thread>
+#include <future>
 
 #include <type_alias.h>
 #include <types.h>
 #include <bag.h>
-#include <agent_base.h>
+#include <agents/agent_base.h>
 
 namespace s = std;
 
@@ -21,8 +23,9 @@ namespace rlgames {
 
 //TODO: find faster method than keep doing modulo for random number generation
 
+//Leaf parallel MCTS algorithm, leaf parallel meaning we do MCTS rollouts in parallel
 template <typename RGen, typename Board, typename GameState>
-struct MCTSAgent : AgentBase<Board, GameState, MCTSAgent<RGen, Board, GameState>> {
+struct LPMCTSAgent : AgentBase<Board, GameState, LPMCTSAgent<RGen, Board, GameState>> {
   static constexpr float MIN_SCORE = -10.F;
   static constexpr float MAX_SCORE =  10.F;
   static constexpr float TIE_SCORE =  0.F;
@@ -30,23 +33,21 @@ private:
   size_t mMaxExpand;
   float  mEFactor;
   size_t mMCBatchSize;
-  s::vector<udyte> mCache;
-  RGen   mGen;
+  size_t mNumThreads;
 protected:
-  void initialize_cache(size_t sz){
-    mCache.resize(sz);
-    s::iota(mCache.begin(), mCache.end(), 0);
-  }
-
-  float mc_play(GameState& gs){
+  float batch_mc_play(const GameState& gs, size_t bsize){
+    RGen gen(rand());
+    size_t sz = gs.board().size();
+    s::vector<udyte> cache(sz * sz);
+    s::iota(cache.begin(), cache.end(), 0);
     IsPointAnEye<Board> is_point_an_eye;
     float score = TIE_SCORE;
-    for (size_t i = 0; i < mMCBatchSize; ++i){
+    for (size_t i = 0; i < bsize; ++i){
       GameState play_state = gs;
       while (not play_state.is_over()){
-        s::random_shuffle(s::begin(mCache), s::end(mCache), [this](int k){ return this->mGen() % k; });
+        s::random_shuffle(s::begin(cache), s::end(cache), [&gen](int k){return gen() % k;});
         bool found_move = false;
-        for (udyte index : mCache){
+        for (udyte index : cache){
           Pt pt = point<Board::SIZE>(index);
           Move m(M::Play, pt);
           if (play_state.is_valid_move(m) && (not is_point_an_eye(play_state.board(), pt, play_state.next_player()))){
@@ -159,7 +160,7 @@ protected:
 
   MCTSNode* recursive_uct(MCTSNode* node, BufferAllocator<MCTSNode>& arena){
     if (node->unp_children.size() > 0){
-      uint rand_idx = mGen() % node->unp_children.size();
+      uint rand_idx = s::rand() % node->unp_children.size();
       GameState new_state = node->gs;
       new_state.apply_move(node->unp_children[rand_idx]);
       MCTSNode* new_node = arena.allocate(MCTSNode(s::move(new_state), node));
@@ -183,25 +184,22 @@ protected:
           best_children.push_back(*it);
       }
       if (best_children.size() > 0){
-        uint random_choice = mGen() % best_children.size();
+        uint random_choice = s::rand() % best_children.size();
         return recursive_uct(best_children[random_choice], arena);
       } else
         return nullptr;
     }
   }
 public:
-  MCTSAgent(size_t max_expansion, float exploration_factor, size_t mc_sample_size = 1):
-    mMaxExpand(max_expansion), mEFactor(exploration_factor), mMCBatchSize(mc_sample_size) {
+  LPMCTSAgent(size_t max_expansion, float exploration_factor, size_t mc_sample_size = 1):
+    mMaxExpand(max_expansion), mEFactor(exploration_factor), mMCBatchSize(mc_sample_size), mNumThreads(s::thread::hardware_concurrency()) {
     s::srand(unsigned(s::time(0)));
-    mGen = RGen(rand());
+    if (mNumThreads == 0U)
+      mNumThreads = 1U;
   }
 
-  Move select_move(const GameState& gs){
+  Move select_move(GameState& gs){
     GameState gs_copy = gs; //explicit copy to reduce total copying
-    if (mCache.size() == 0){
-      size_t sz = gs_copy.board().size();
-      initialize_cache(sz * sz);
-    }
     BufferAllocator<MCTSNode> arena(mMaxExpand + 1);
     MCTSNode* root = arena.allocate(MCTSNode(s::move(gs_copy)));
 
@@ -211,9 +209,20 @@ public:
       MCTSNode* node = recursive_uct(root, arena);
       if (node == nullptr) break;
 
-      float qvalue = mc_play(node->gs);
-      node->update(qvalue, mMCBatchSize);
+      size_t pbatchsize = (mMCBatchSize + 1U) / mNumThreads;
+      size_t total_size = pbatchsize * mNumThreads;
+
+      s::vector<s::future<float>> futures;
+      futures.reserve(mNumThreads);
+      for (size_t i = 0; i < mNumThreads; ++i)
+        futures.push_back(s::async(s::launch::async, &LPMCTSAgent::batch_mc_play, this, node->gs, pbatchsize));
+
+      float qvalue = 0.f;
+      for (auto& fut : futures)
+        qvalue += fut.get();
+      node->update(qvalue, total_size);
     }
+
     float best_score = init_best_score(root->gs.next_player());
     s::vector<MCTSNode*> best_nodes;
     for (MCTSNode* child : root->children){
@@ -226,7 +235,7 @@ public:
         best_nodes.push_back(child);
     }
     if (best_nodes.size() > 0){
-      uint choice = mGen() % best_nodes.size();
+      uint choice = s::rand() % best_nodes.size();
       return best_nodes[choice]->gs.previous_move();
     } else
       return Move(M::Pass);
@@ -235,4 +244,4 @@ public:
 
 } // rlgames
 
-#endif//RLGAMES_MCTS_AGENT
+#endif//RLGAMES_LP_MCTS_AGENT

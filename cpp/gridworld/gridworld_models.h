@@ -6,6 +6,7 @@
 #include <gridworld.h>
 
 #include <cassert>
+#include <cstdlib>
 #include <ctime>
 #include <cstdlib>
 #include <memory>
@@ -51,87 +52,58 @@ class GridEnv {
     return w;
   }
 
+  void recursive_maze_generator_helper(g::GridWorld& w, const g::GridState& s, g::Pt pt, s::vector<bool>& visited) const {
+    visited[pt_to_index(pt, mSize)] = true;
+    g::Pt next_pts[4U];
+    g::Pt valid_pts[4U];
+    g::all_next_pts(next_pts, pt, mSize);
+    uint valid_sz = 0;
+    for (uint i = 0; i < 4U; ++i)
+      if (next_pts[i] != pt && s.get(next_pts[i]) == g::Obj::Empty && visited[pt_to_index(next_pts[i], mSize)] == false)
+        valid_pts[valid_sz++] = next_pts[i];
+    if (valid_sz == 0) return;
+    uint wall_idx = rand() % valid_sz;
+    w.set_wall(valid_pts[wall_idx]);
+    visited[valid_pts[wall_idx].i * mSize + valid_pts[wall_idx].j] = true;
+    if (valid_sz == 1) return;
+    uint next_idx = wall_idx;
+    while (next_idx == wall_idx)
+      next_idx = rand() % valid_sz;
+    recursive_maze_generator_helper(w, s, valid_pts[next_idx], visited);
+  }
+
+  void recursive_maze_generator(g::GridWorld& w, const g::GridState& s) const {
+    s::vector<bool> visited(mSize * mSize, false);
+
+    for (uint i = 0; i < visited.size(); ++i)
+      if (visited[i] == false)
+        recursive_maze_generator_helper(w, s, g::index_to_pt(i, mSize), visited);
+  }
+
   g::GridWorld random_maze_init(uint gfactor) const {
     assert(mSize > 1);
 
     g::GridWorld w(mSize, 0, 0, 0, rand(), true);
     w.remove_player();
     const g::GridState& ws = w.get_state();
-    s::vector<uint> empties;
-    s::unordered_set<uint> connections;
-    {
-      s::set<uint> walls;
-      while (s::rand() % gfactor != 0){
-        uint v = s::rand() % mSize;
-        if (walls.find(v) == walls.end()){
-          walls.insert(v);
-          w.set_wall(g::Pt(0, v));
-        }
-      }
-      for (uint i = 0; i < mSize; ++i)
-        if (ws.get(g::Pt(0, i)) == g::Obj::Empty)
-          empties.push_back(i);
-    }
-    for (uint i = 1; i < mSize; ++i){
-      do {
-        //add random vertical path
-        while (s::rand() % gfactor != 0 && empties.size() > 0){
-          uint v = s::rand() % empties.size();
-          connections.insert(empties[v]);
-        }
 
-        s::vector<bool> connected(empties.size(), false);
-        for (uint connection : connections){
-          uint j = 0;
-          for (; j < empties.size(); ++j)
-            if (empties[j] == connection){
-              connected[j] = true;
-              break;
-            }
-          for (uint k = j+1; k < empties.size(); ++k)
-            if (empties[k] - empties[k-1] == 1)
-              connected[k] = true;
-            else
-              break;
-          for (uint k = j-1; k < empties.size(); --k)
-            if (empties[k+1] - empties[k] == 1)
-              connected[k] = true;
-            else
-              break;
-        }
-        s::vector<uint> new_empty;
-        for (uint j = 0; j < connected.size(); ++j)
-          if (connected[j] == false)
-            new_empty.push_back(empties[j]);
-        empties = new_empty;
-      } while (not empties.empty());
-
-      //add random horizontal path
-      {
-        uint prev_connection = -1;
-        //TODO: does this give you ordered values ?
-        for (uint connection : connections){
-          if (prev_connection != (uint)-1 && s::rand() % gfactor != 0){
-            for (uint j = prev_connection + 1; j < connection; ++j)
-              connections.insert(j);
-          }
-          prev_connection = connection;
-        }
-      }
-
-      for (uint j = 0; j < mSize; ++j)
-        if (connections.find(j) == connections.end())
-          w.set_wall(g::Pt(i, j));
-      connections.clear();
-      for (uint j = 0; j < mSize; ++j)
-        if (ws.get(g::Pt(i, j)) == g::Obj::Empty)
-          empties.push_back(j);
-    }
+    recursive_maze_generator(w, ws);
 
     // set player and goal locations
-    // TODO: not working, need better way to find player and goal location
-    while (not w.set_player_location(g::Pt(s::rand() % mSize, s::rand() % mSize)));
-    while (not w.set_goal_location(g::Pt(s::rand() % mSize, s::rand() % mSize)));
+    while (true){
+      int px = s::rand() % mSize, py = s::rand() % mSize,
+          gx = s::rand() % mSize, gy = s::rand() % mSize;
+      if (s::abs(px - gx) + s::abs(py - gy) - (int)(mSize + (mSize / 2))  < 0)
+        continue;
+      if (not w.set_player_location(g::Pt(px, py)))
+        continue;
+      if (not w.set_goal_location(g::Pt(gx, gy)))
+        continue;
+      break;
+    }
+    // TODO: maybe less random and harder
+    //while (not w.set_player_location(g::Pt(s::rand() % mSize, s::rand() % mSize)));
+    //while (not w.set_goal_location(g::Pt(s::rand() % mSize, s::rand() % mSize)));
     return w;
   }
 

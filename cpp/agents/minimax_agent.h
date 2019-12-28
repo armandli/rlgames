@@ -9,7 +9,7 @@
 
 #include <type_alias.h>
 #include <types.h>
-#include <agent_base.h>
+#include <agents/agent_base.h>
 
 namespace rlgames {
 

@@ -45,6 +45,14 @@ Pt rand_coord(uint sz){
   return Pt(s::rand() % sz, s::rand() % sz);
 }
 
+uint pt_to_index(Pt pt, uint size){
+  return pt.i * size + pt.j;
+}
+
+Pt index_to_pt(uint idx, uint size){
+  return Pt(idx / size, idx % size);
+}
+
 enum class Action: ubyte {
   UP = 0,
   DN,
