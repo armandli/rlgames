@@ -4,7 +4,7 @@
 #include <types.h>
 #include <ttt_types.h>
 #include <splitmix.h>
-#include <mcts_agent.h>
+#include <agents/mcts_agent.h>
 
 namespace s = std;
 namespace R = rlgames;

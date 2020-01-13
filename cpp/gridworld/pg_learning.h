@@ -15,6 +15,8 @@ namespace gridworld_pt {
 namespace s = std;
 namespace t = torch;
 
+//TODO: increase batch size of pg learning, instead of train on each episode, train with k number of episodes
+//using the same policy function
 template <typename ENV, typename RLM, typename INS, typename ACTION, uint loss_sampling_interval = 100>
 void pg_learning(
   ENV& env,

@@ -10,16 +10,27 @@ struct epsilon_greedy_metaparams {
 };
 
 struct experience_replay_metaparams {
-  uint64 sz;
-  uint   batchsize;
+  uint sz;
+  uint batchsize;
 };
 
 template <typename EParams, typename ERBParams>
 struct qlearning_metaparams {
-  uint64 epochs;
-  double gamma;
-  uint64 max_steps;
-  uint64 tc_steps;
+  uint64    epochs;
+  double    gamma;
+  uint      max_steps;
+  uint      tc_steps;
+  EParams   exp;
+  ERBParams erb;
+};
+
+template <typename EParams, typename ERBParams>
+struct distqlearning_metaparams {
+  uint64    epochs;
+  double    gamma;
+  uint      max_steps;
+  uint      tc_steps;
+  uint      reward_dist_slices;
   EParams   exp;
   ERBParams erb;
 };
@@ -27,7 +38,7 @@ struct qlearning_metaparams {
 struct pg_metaparams {
   uint64 epochs;
   double gamma;
-  uint64 max_steps;
+  uint   max_steps;
 };
 
 template <typename ERBParams>

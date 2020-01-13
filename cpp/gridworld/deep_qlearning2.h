@@ -83,7 +83,7 @@ void deep_qlearning2(
         nqval_dev = t::max_values(nqval_dev, 1);
         t::Tensor reward = t::from_blob(actions_rewards.rewards.data(), {mp.erb.batchsize});
         t::Tensor reward_dev = reward.to(device);
-        t::Tensor terminal = t::from_blob(actions_rewards.is_terminals.data(), {mp.erb.batchsize}, t::kBool);
+        t::Tensor terminal = t::from_blob(actions_rewards.is_terminals.data(), {mp.erb.batchsize}, t::kLong);
         t::Tensor terminal_dev = terminal.to(device);
         terminal_dev = terminal_dev.logical_not();
         t::Tensor target_dev = reward_dev + mp.gamma * terminal_dev * nqval_dev;

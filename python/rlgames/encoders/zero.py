@@ -9,7 +9,7 @@ from rlgames.encoders.base import Encoder
 
 # 0-3 are our stones with 1,2,3,4+ liberties
 # 4-7 are opponent stones with 1,2,3,4+ liberties
-# 8 1 if wen get komi
+# 8 1 if we get komi
 # 9 1 if opponent get komi
 # 10 move would be illegal due to ko
 

@@ -33,9 +33,9 @@ struct ARTuple {
 };
 
 struct ARTArray {
-  s::vector<long> actions;
-  s::vector<float>  rewards;
-  s::vector<ubyte>   is_terminals;
+  s::vector<long>  actions;
+  s::vector<float> rewards;
+  s::vector<long>  is_terminals;
 
   ARTArray() = default;
   explicit ARTArray(uint sz): actions(sz), rewards(sz), is_terminals(sz) {}

@@ -3,7 +3,7 @@
 
 #include <types.h>
 #include <ttt_types.h>
-#include <random_agent.h>
+#include <agents/random_agent.h>
 
 namespace s = std;
 namespace R = rlgames;

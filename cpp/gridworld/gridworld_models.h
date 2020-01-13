@@ -6,6 +6,7 @@
 #include <gridworld.h>
 
 #include <cassert>
+#include <cstdlib>
 #include <ctime>
 #include <cstdlib>
 #include <memory>
@@ -51,94 +52,69 @@ class GridEnv {
     return w;
   }
 
-  g::GridWorld random_maze_init(uint gfactor) const {
+  void recursive_maze_generator_helper(g::GridWorld& w, const g::GridState& s, g::Pt pt, s::vector<bool>& visited) const {
+    if (visited[pt_to_index(pt, mSize)] == true) return;
+
+    visited[pt_to_index(pt, mSize)] = true;
+    g::Pt next_pts[4U];
+    g::Pt valid_pts[4U];
+    g::all_next_pts(next_pts, pt, mSize);
+    uint valid_sz = 0;
+    for (uint i = 0; i < 4U; ++i)
+      if (next_pts[i] != pt && s.get(next_pts[i]) == g::Obj::Empty && visited[pt_to_index(next_pts[i], mSize)] == false)
+        valid_pts[valid_sz++] = next_pts[i];
+    if (valid_sz < 2){
+      for (uint i = 0; i < valid_sz; ++i)
+        visited[pt_to_index(valid_pts[i], mSize)] = true;
+      return;
+    }
+    uint wall_idx = rand() % valid_sz;
+    w.set_wall(valid_pts[wall_idx]);
+    visited[valid_pts[wall_idx].i * mSize + valid_pts[wall_idx].j] = true;
+    if (valid_sz == 1) return;
+    uint next_idx = wall_idx;
+    while (next_idx == wall_idx)
+      next_idx = rand() % valid_sz;
+    recursive_maze_generator_helper(w, s, valid_pts[next_idx], visited);
+  }
+
+  void recursive_maze_generator(g::GridWorld& w, const g::GridState& s) const {
+    s::vector<bool> visited(mSize * mSize, false);
+
+    for (uint i = 0; i < visited.size(); ++i)
+      if (visited[i] == false)
+        recursive_maze_generator_helper(w, s, g::index_to_pt(i, mSize), visited);
+  }
+
+  g::GridWorld random_maze_init() const {
     assert(mSize > 1);
 
     g::GridWorld w(mSize, 0, 0, 0, rand(), true);
     w.remove_player();
     const g::GridState& ws = w.get_state();
-    s::vector<uint> empties;
-    s::unordered_set<uint> connections;
-    {
-      s::set<uint> walls;
-      while (s::rand() % gfactor != 0){
-        uint v = s::rand() % mSize;
-        if (walls.find(v) == walls.end()){
-          walls.insert(v);
-          w.set_wall(g::Pt(0, v));
-        }
-      }
-      for (uint i = 0; i < mSize; ++i)
-        if (ws.get(g::Pt(0, i)) == g::Obj::Empty)
-          empties.push_back(i);
-    }
-    for (uint i = 1; i < mSize; ++i){
-      do {
-        //add random vertical path
-        while (s::rand() % gfactor != 0 && empties.size() > 0){
-          uint v = s::rand() % empties.size();
-          connections.insert(empties[v]);
-        }
 
-        s::vector<bool> connected(empties.size(), false);
-        for (uint connection : connections){
-          uint j = 0;
-          for (; j < empties.size(); ++j)
-            if (empties[j] == connection){
-              connected[j] = true;
-              break;
-            }
-          for (uint k = j+1; k < empties.size(); ++k)
-            if (empties[k] - empties[k-1] == 1)
-              connected[k] = true;
-            else
-              break;
-          for (uint k = j-1; k < empties.size(); --k)
-            if (empties[k+1] - empties[k] == 1)
-              connected[k] = true;
-            else
-              break;
-        }
-        s::vector<uint> new_empty;
-        for (uint j = 0; j < connected.size(); ++j)
-          if (connected[j] == false)
-            new_empty.push_back(empties[j]);
-        empties = new_empty;
-      } while (not empties.empty());
-
-      //add random horizontal path
-      {
-        uint prev_connection = -1;
-        //TODO: does this give you ordered values ?
-        for (uint connection : connections){
-          if (prev_connection != (uint)-1 && s::rand() % gfactor != 0){
-            for (uint j = prev_connection + 1; j < connection; ++j)
-              connections.insert(j);
-          }
-          prev_connection = connection;
-        }
-      }
-
-      for (uint j = 0; j < mSize; ++j)
-        if (connections.find(j) == connections.end())
-          w.set_wall(g::Pt(i, j));
-      connections.clear();
-      for (uint j = 0; j < mSize; ++j)
-        if (ws.get(g::Pt(i, j)) == g::Obj::Empty)
-          empties.push_back(j);
-    }
+    recursive_maze_generator(w, ws);
 
     // set player and goal locations
-    // TODO: not working, need better way to find player and goal location
-    while (not w.set_player_location(g::Pt(s::rand() % mSize, s::rand() % mSize)));
-    while (not w.set_goal_location(g::Pt(s::rand() % mSize, s::rand() % mSize)));
+    do {
+      int px = s::rand() % mSize, py = s::rand() % mSize,
+          gx = s::rand() % mSize, gy = s::rand() % mSize;
+      if (s::abs(px - gx) + s::abs(py - gy) - (int)(mSize + (mSize / 2))  < 0)
+        continue;
+      if (not w.set_player_location(g::Pt(px, py)))
+        continue;
+      if (not w.set_goal_location(g::Pt(gx, gy)))
+        continue;
+      break;
+    } while (true);
+
     return w;
   }
 
-  g::GridWorld random_maze_init_check(uint gfactor) const {
-    g::GridWorld w = random_maze_init(gfactor);
+  g::GridWorld random_maze_init_check() const {
+    g::GridWorld w = random_maze_init();
     while (not w.is_solvable())
-      w = random_maze_init(gfactor);
+      w = random_maze_init();
     return w;
   }
 public:
@@ -164,8 +140,8 @@ public:
       return random_simple_init();
     case GridEnvMode::RandomComplex:
       return random_complex_init();
-    case GridEnvMode::RandomMaze:
-      return random_maze_init_check(mSize * 2);
+    case GridEnvMode::RandomMaze: //flawed, best with size <= 64
+      return random_maze_init_check();
     default: assert(false);
     }
   }
@@ -195,6 +171,14 @@ public:
         return 0.;
     } else
       return reward * 2;
+  }
+
+  float max_reward(const g::GridWorld& ins) const {
+    return (float)ins.max_reward();
+  }
+
+  float min_reward(const g::GridWorld& ins) const {
+    return (float)ins.min_reward();
   }
 
   void apply_action(g::GridWorld& ins, g::Action action) const {
@@ -461,6 +445,34 @@ public:
   }
 };
 TORCH_MODULE(SimpleActorCriticModel);
+
+class SimpleDistQModelImpl : public t::nn::Module {
+  t::nn::Linear l1, l2, l3;
+  sint64 action_sz;
+public:
+  SimpleDistQModelImpl(sint64 isz, sint64 l1sz, sint64 l2sz, sint64 action_sz, sint64 distout_sz):
+    l1(register_module("l1", t::nn::Linear(isz, l1sz))),
+    l2(register_module("l2", t::nn::Linear(l1sz, l2sz))),
+    l3(register_module("l3", t::nn::Linear(l2sz, action_sz * distout_sz))),
+    action_sz(action_sz)
+  {}
+  SimpleDistQModelImpl(const SimpleDistQModelImpl& o):
+    l1(o.l1->options), l2(o.l2->options), l3(o.l3->options), action_sz(o.action_sz)
+  {}
+
+  t::Tensor forward(t::Tensor x){
+    x = t::relu(l1(x));
+    x = t::relu(l2(x));
+    x = l3(x);
+    if (x.dim() == 2)
+      x = x.reshape({action_sz, -1});
+    else
+      x = x.reshape({x.size(0), action_sz, -1});
+    x = t::softmax(x, -1);
+    return x;
+  }
+};
+TORCH_MODULE(SimpleDistQModel);
 
 template <typename NNModel, typename SE, typename AE, typename Optim>
 struct RLModel {

@@ -3,7 +3,7 @@
 
 #include <types.h>
 #include <ttt_types.h>
-#include <minimax_agent.h>
+#include <agents/minimax_agent.h>
 
 namespace s = std;
 namespace R = rlgames;

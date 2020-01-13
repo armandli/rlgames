@@ -7,9 +7,9 @@
 #include <type_alias.h>
 #include <types.h>
 #include <go_types.h>
-#include <mcts_agent.h>
+#include <agents/mcts_agent.h>
 #include <splitmix.h>
-#include <lp_mcts_agent.h>
+#include <agents/lp_mcts_agent.h>
 
 namespace s = std;
 namespace c = s::chrono;
