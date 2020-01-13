@@ -196,6 +196,7 @@ public:
         case Obj::Sink:
         case Obj::PS:
           continue;
+        default: assert(false);
         }
       }
     }
@@ -309,6 +310,13 @@ class GridWorld {
   void remove_player(){
     mState.clear_cell(mPlayer);
   }
+
+  void remove_goals(){
+    for (Pt pt : mGoals){
+      mState.clear_cell(pt);
+    }
+    mGoals.clear();
+  }
 public:
   GridWorld(uint sz, uint num_walls, uint num_sinks, uint num_goals, uint seed = 0U, bool discount_steps = false):
     mStepCount(0), mSize(sz), mState(sz), mUseStepCount(discount_steps) {
@@ -353,6 +361,14 @@ public:
       if (giter != mGoals.end()) return max_reward;
     }
     return 0;
+  }
+
+  int max_reward() const {
+    return mSize * mSize;
+  }
+
+  int min_reward() const {
+    return mSize * mSize * -1;
   }
 
   uint step_count() const {

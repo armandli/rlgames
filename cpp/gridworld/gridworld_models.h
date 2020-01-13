@@ -53,6 +53,8 @@ class GridEnv {
   }
 
   void recursive_maze_generator_helper(g::GridWorld& w, const g::GridState& s, g::Pt pt, s::vector<bool>& visited) const {
+    if (visited[pt_to_index(pt, mSize)] == true) return;
+
     visited[pt_to_index(pt, mSize)] = true;
     g::Pt next_pts[4U];
     g::Pt valid_pts[4U];
@@ -61,7 +63,11 @@ class GridEnv {
     for (uint i = 0; i < 4U; ++i)
       if (next_pts[i] != pt && s.get(next_pts[i]) == g::Obj::Empty && visited[pt_to_index(next_pts[i], mSize)] == false)
         valid_pts[valid_sz++] = next_pts[i];
-    if (valid_sz == 0) return;
+    if (valid_sz < 2){
+      for (uint i = 0; i < valid_sz; ++i)
+        visited[pt_to_index(valid_pts[i], mSize)] = true;
+      return;
+    }
     uint wall_idx = rand() % valid_sz;
     w.set_wall(valid_pts[wall_idx]);
     visited[valid_pts[wall_idx].i * mSize + valid_pts[wall_idx].j] = true;
@@ -80,7 +86,7 @@ class GridEnv {
         recursive_maze_generator_helper(w, s, g::index_to_pt(i, mSize), visited);
   }
 
-  g::GridWorld random_maze_init(uint gfactor) const {
+  g::GridWorld random_maze_init() const {
     assert(mSize > 1);
 
     g::GridWorld w(mSize, 0, 0, 0, rand(), true);
@@ -90,7 +96,7 @@ class GridEnv {
     recursive_maze_generator(w, ws);
 
     // set player and goal locations
-    while (true){
+    do {
       int px = s::rand() % mSize, py = s::rand() % mSize,
           gx = s::rand() % mSize, gy = s::rand() % mSize;
       if (s::abs(px - gx) + s::abs(py - gy) - (int)(mSize + (mSize / 2))  < 0)
@@ -100,17 +106,15 @@ class GridEnv {
       if (not w.set_goal_location(g::Pt(gx, gy)))
         continue;
       break;
-    }
-    // TODO: maybe less random and harder
-    //while (not w.set_player_location(g::Pt(s::rand() % mSize, s::rand() % mSize)));
-    //while (not w.set_goal_location(g::Pt(s::rand() % mSize, s::rand() % mSize)));
+    } while (true);
+
     return w;
   }
 
-  g::GridWorld random_maze_init_check(uint gfactor) const {
-    g::GridWorld w = random_maze_init(gfactor);
+  g::GridWorld random_maze_init_check() const {
+    g::GridWorld w = random_maze_init();
     while (not w.is_solvable())
-      w = random_maze_init(gfactor);
+      w = random_maze_init();
     return w;
   }
 public:
@@ -136,8 +140,8 @@ public:
       return random_simple_init();
     case GridEnvMode::RandomComplex:
       return random_complex_init();
-    case GridEnvMode::RandomMaze:
-      return random_maze_init_check(mSize * 2);
+    case GridEnvMode::RandomMaze: //flawed, best with size <= 64
+      return random_maze_init_check();
     default: assert(false);
     }
   }
@@ -167,6 +171,14 @@ public:
         return 0.;
     } else
       return reward * 2;
+  }
+
+  float max_reward(const g::GridWorld& ins) const {
+    return (float)ins.max_reward();
+  }
+
+  float min_reward(const g::GridWorld& ins) const {
+    return (float)ins.min_reward();
   }
 
   void apply_action(g::GridWorld& ins, g::Action action) const {
@@ -433,6 +445,34 @@ public:
   }
 };
 TORCH_MODULE(SimpleActorCriticModel);
+
+class SimpleDistQModelImpl : public t::nn::Module {
+  t::nn::Linear l1, l2, l3;
+  sint64 action_sz;
+public:
+  SimpleDistQModelImpl(sint64 isz, sint64 l1sz, sint64 l2sz, sint64 action_sz, sint64 distout_sz):
+    l1(register_module("l1", t::nn::Linear(isz, l1sz))),
+    l2(register_module("l2", t::nn::Linear(l1sz, l2sz))),
+    l3(register_module("l3", t::nn::Linear(l2sz, action_sz * distout_sz))),
+    action_sz(action_sz)
+  {}
+  SimpleDistQModelImpl(const SimpleDistQModelImpl& o):
+    l1(o.l1->options), l2(o.l2->options), l3(o.l3->options), action_sz(o.action_sz)
+  {}
+
+  t::Tensor forward(t::Tensor x){
+    x = t::relu(l1(x));
+    x = t::relu(l2(x));
+    x = l3(x);
+    if (x.dim() == 2)
+      x = x.reshape({action_sz, -1});
+    else
+      x = x.reshape({x.size(0), action_sz, -1});
+    x = t::softmax(x, -1);
+    return x;
+  }
+};
+TORCH_MODULE(SimpleDistQModel);
 
 template <typename NNModel, typename SE, typename AE, typename Optim>
 struct RLModel {
