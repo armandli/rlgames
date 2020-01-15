@@ -464,7 +464,7 @@ public:
     x = t::relu(l1(x));
     x = t::relu(l2(x));
     x = l3(x);
-    if (x.dim() == 2)
+    if (x.dim() == 1)
       x = x.reshape({action_sz, -1});
     else
       x = x.reshape({x.size(0), action_sz, -1});

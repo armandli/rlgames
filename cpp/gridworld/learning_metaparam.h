@@ -14,6 +14,13 @@ struct experience_replay_metaparams {
   uint batchsize;
 };
 
+struct prioritized_experience_replay_metaparams {
+  uint sz;
+  uint batchsize;
+  float alpha;
+  float init_delta;
+};
+
 template <typename EParams, typename ERBParams>
 struct qlearning_metaparams {
   uint64    epochs;
