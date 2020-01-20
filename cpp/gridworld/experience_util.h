@@ -30,6 +30,7 @@ struct ARTuple {
 
   ARTuple(): action((ACTION)0), reward(0.F), is_terminal(false) {}
   ARTuple(ACTION a, float r, bool t): action(a), reward(r), is_terminal(t) {}
+  ARTuple(const ARTuple& o): action(o.action), reward(o.reward), is_terminal(o.is_terminal()) {}
 };
 
 struct ARTArray {

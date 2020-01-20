@@ -90,6 +90,18 @@ void distributional_qlearning(
   //distribution construction buffer
   s::vector<float> dist_buffer(mp.erb.batchsize * mp.reward_dist_slices);
 
+  //construct the value distribution support vector
+  s::vector<float> support_vec(mp.reward_dist_slices);
+  float zdelta = 1.F;
+  {
+    INS ins = env.create();
+    zdelta = (env.max_reward(ins) - env.min_reward(ins)) / (float)mp.reward_dist_slices;
+    for (uint i = 0; i < support_vec.size(); ++i)
+      support_vec[i] = env.min_reward(ins) + i * zdelta;
+  }
+  t::Tensor support = t::from_blob(support_vec.data(), {mp.reward_dist_slices});
+  t::Tensor support_dev = support.to(device);
+
   ExpReplayBuffer2<ACTION> replay_buffer(mp.erb.sz, env.state_size(), device);
 
   decltype(rlm.model) targetn(rlm.model);
@@ -101,15 +113,6 @@ void distributional_qlearning(
   for (uint64 i = 0, tc_step = 0; i < mp.epochs; ++i){
     INS ins = env.create();
     uint64 step_count = 0;
-
-    //TODO: research if i can move this out of the loop
-    //construct the value distribution support vector
-    s::vector<float> support_vec(mp.reward_dist_slices);
-    float zdelta = (env.max_reward(ins) - env.min_reward(ins)) / (float)mp.reward_dist_slices;
-    for (uint i = 0; i < support_vec.size(); ++i)
-      support_vec[i] = env.min_reward(ins) + i * zdelta;
-    t::Tensor support = t::from_blob(support_vec.data(), {mp.reward_dist_slices});
-    t::Tensor support_dev = support.to(device);
 
     while (not env.is_termination(ins) && step_count < mp.max_steps){
       //update targetn parameters

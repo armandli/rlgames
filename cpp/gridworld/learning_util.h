@@ -1,3 +1,6 @@
+#ifndef GRIDWORLD_LEARNING_UTIL
+#define GRIDWORLD_LEARNING_UTIL
+
 #include <torch/torch.h>
 
 #include <cassert>
@@ -39,3 +42,6 @@ uint sample_discrete_distribution(float* probabilities, size_t size, ENG& eng){
 }
 
 } // gridworld_pt
+
+
+#endif//GRIDWORLD_LEARNING_UTIL
