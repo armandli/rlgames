@@ -51,7 +51,7 @@ int simulate_gridworld_dq(GridEnv& env, Model& model, uint datoms, uint max_step
   g::GridWorld ins = env.create();
 
   s::vector<float> support_vec(datoms);
-  float zdelta = (env.max_reward(ins) - env.min_reward(ins)) / (float)datoms;
+  float zdelta = (env.max_reward(ins) - env.min_reward(ins)) / (float)(datoms - 1);
   for (uint i = 0; i < support_vec.size(); ++i)
     support_vec[i] = env.min_reward(ins) + i * zdelta;
   t::Tensor support = t::from_blob(support_vec.data(), {datoms});
