@@ -32,9 +32,9 @@ int main(int argc, char* argv[]){
   //m::GridEnv env(grid_size, m::GridEnvMode::StaticSimple);
 
   m::distqlearning_metaparams<m::epsilon_greedy_metaparams, m::experience_replay_metaparams> mp;
-  mp.epochs = 5000;
+  mp.epochs = 8000;
   mp.gamma = 0.9;
-  mp.max_steps = env.state_size() / 4 / 2;
+  mp.max_steps = env.state_size() / 4;
   mp.tc_steps = 500;
   mp.reward_dist_slices = 51;
   mp.exp.epsilon = 1.;
@@ -58,7 +58,7 @@ int main(int argc, char* argv[]){
     time(NULL)
   );
 
-  m::simulate_gridworld_dq(env, rlm, mp.reward_dist_slices, env.state_size() / 4 / 2, device, true);
+  m::simulate_gridworld_dq(env, rlm, mp.reward_dist_slices, env.state_size() / 4, device, true);
 
   if (losses.size() > 0){
     s::cout << "Final Loss: " << losses.back() << s::endl;
@@ -68,7 +68,7 @@ int main(int argc, char* argv[]){
   int win_count = 0;
   int count = 100;
   for (int i = 0; i < count; ++i){
-    int r = m::simulate_gridworld_dq(env, rlm, mp.reward_dist_slices, env.state_size() / 4 / 2, device, false);
+    int r = m::simulate_gridworld_dq(env, rlm, mp.reward_dist_slices, env.state_size() / 4, device, false);
     sum += r;
     if (r > 1)
       win_count++;

@@ -28,8 +28,8 @@ int main(int argc, char* argv[]){
     device = t::Device(t::kCUDA);
   }
 
-  m::GridEnv env(grid_size, m::GridEnvMode::RandomSimple);
-  //m::GridEnv env(grid_size, m::GridEnvMode::StaticSimple);
+  //m::GridEnv env(grid_size, m::GridEnvMode::RandomSimple);
+  m::GridEnv env(grid_size, m::GridEnvMode::StaticSimple);
 
   m::distqlearning_metaparams<m::epsilon_greedy_metaparams, m::prioritized_experience_replay_metaparams> mp;
   mp.epochs = 5000;

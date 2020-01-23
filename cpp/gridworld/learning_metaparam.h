@@ -44,17 +44,17 @@ struct distqlearning_metaparams {
 
 struct pg_metaparams {
   uint64 epochs;
+  uint64 batchsize;
   double gamma;
   uint   max_steps;
 };
 
-template <typename ERBParams>
 struct ac_metaparams {
   uint64 epochs;
+  uint64 batchsize;
   double gamma;
-  uint64 max_steps;
-  uint64 tc_steps;
-  ERBParams erb;
+  uint   max_steps;
+  uint   tc_steps;
 };
 
 } // gridworld_pt

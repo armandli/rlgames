@@ -417,6 +417,33 @@ void test_logical_not2(){
   s::cout << select << s::endl;
 }
 
+void test_from_blob_selection(){
+  float src_data[] = {
+    0, 1, 2, 3,
+    4, 5, 6, 7,
+    8, 9, 10, 11,
+    12, 13, 14, 15,
+  };
+  t::Tensor src1 = t::from_blob(src_data, {12});
+
+  s::cout << "test from blob" << s::endl;
+  s::cout << src1 << s::endl;
+}
+
+void test_slice(){
+  float src_data[] = {
+    0, 1, 2, 3,
+    4, 5, 6, 7,
+    8, 9, 10, 11,
+    12, 13, 14, 15,
+  };
+  t::Tensor src1 = t::from_blob(src_data, {16});
+  t::Tensor r = src1.slice(0, 0, 9);
+
+  s::cout << "slicing" << s::endl;
+  s::cout << r << s::endl;
+}
+
 int main(){
   test_softmax();
   test_index_select();
@@ -437,4 +464,6 @@ int main(){
   test_matrix_cell_multiply();
   test_cat();
   test_logical_not2();
+  test_from_blob_selection();
+  test_slice();
 }

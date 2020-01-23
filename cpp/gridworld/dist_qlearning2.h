@@ -42,8 +42,12 @@ t::Tensor construct_nonterminal_support(
       float nv = (s::max(vmin, s::min(vmax, reward[i] + gamma * support[j])) - vmin) / zdelta;
       float ml = s::floor(nv);
       float mu = s::ceil(nv);
-      buffer[i * reward_dist_slices + (uint)ml] += (nv - ml);
-      buffer[i * reward_dist_slices + (uint)mu] += (mu - nv);
+      if (ml == mu){
+        buffer[i * reward_dist_slices + (uint)ml] += 1.F;
+      } else {
+        buffer[i * reward_dist_slices + (uint)ml] += (nv - ml);
+        buffer[i * reward_dist_slices + (uint)mu] += (mu - nv);
+      }
     }
 
   t::Tensor v = t::from_blob(buffer.data(), {batch_size, reward_dist_slices});
@@ -62,10 +66,8 @@ t::Tensor construct_terminal_reward(
     v = 0.0F;
   for (uint i = 0; i < batch_size; ++i){
     float nv = (s::max(vmin, s::min(vmax, reward[i])) - vmin) / zdelta;
-    float ml = s::floor(nv);
-    float mu = s::ceil(nv);
-    buffer[i * reward_dist_slices + (uint)ml] = (nv - ml);
-    buffer[i * reward_dist_slices + (uint)mu] = (mu - nv);
+    uint idx = s::ceil(nv);
+    buffer[i * reward_dist_slices + idx] = 1.F;
   }
 
   t::Tensor v = t::from_blob(buffer.data(), {batch_size, reward_dist_slices});
@@ -90,6 +92,18 @@ void distributional_qlearning2(
   //distribution construction buffer
   s::vector<float> dist_buffer(mp.erb.batchsize * mp.reward_dist_slices);
 
+  //construct the value distribution support vector
+  s::vector<float> support_vec(mp.reward_dist_slices);
+  float zdelta = 1.F;
+  {
+    INS ins = env.create();
+    zdelta = (env.max_reward(ins) - env.min_reward(ins)) / (float)(mp.reward_dist_slices - 1);
+    for (uint i = 0; i < support_vec.size(); ++i)
+      support_vec[i] = env.min_reward(ins) + i * zdelta;
+  }
+  t::Tensor support = t::from_blob(support_vec.data(), {mp.reward_dist_slices});
+  t::Tensor support_dev = support.to(device);
+
   PriExpReplayBuffer<ACTION> replay_buffer(
     mp.erb.sz,
     env.state_size(),
@@ -107,15 +121,6 @@ void distributional_qlearning2(
   for (uint64 i = 0, tc_step = 0; i < mp.epochs; ++i){
     INS ins = env.create();
     uint64 step_count = 0;
-
-    //TODO: research if i can move this out of the loop
-    //construct the value distribution support vector
-    s::vector<float> support_vec(mp.reward_dist_slices);
-    float zdelta = (env.max_reward(ins) - env.min_reward(ins)) / (float)mp.reward_dist_slices;
-    for (uint i = 0; i < support_vec.size(); ++i)
-      support_vec[i] = env.min_reward(ins) + i * zdelta;
-    t::Tensor support = t::from_blob(support_vec.data(), {mp.reward_dist_slices});
-    t::Tensor support_dev = support.to(device);
 
     while (not env.is_termination(ins) && step_count < mp.max_steps){
       //update targetn parameters
@@ -158,7 +163,7 @@ void distributional_qlearning2(
         dnqval_dev = t::squeeze(t::gather(dnqval_dev, 1, dnqselect_dev));
         t::Tensor ntsupport = construct_nonterminal_support(dist_buffer, actions_rewards.rewards, support_vec, mp.erb.batchsize, mp.reward_dist_slices, env.max_reward(ins), env.min_reward(ins), zdelta, mp.gamma);
         t::Tensor ntsupport_dev = ntsupport.to(device);
-        t::Tensor nttarget_dev = dnqval_dev * ntsupport_dev;
+        t::Tensor nttarget_dev = dnqval_dev * t::softmax(ntsupport_dev, -1);
         nttarget_dev = t::softmax(nttarget_dev, -1);
 
         //construct target distribution assuming every sample is terminal
@@ -176,7 +181,7 @@ void distributional_qlearning2(
         target_dev = t::squeeze(t::gather(target_dev, 0, terminal_dev));
 
         //cross entropy loss
-        t::Tensor delta_dev = -1.F * target_dev.detach() * t::log(doqval_dev);
+        t::Tensor delta_dev = t::sum(-1.F * target_dev.detach() * t::log(doqval_dev), -1);
         t::Tensor loss_dev = t::mean(delta_dev);
 
         replay_buffer.update(batch, delta_dev);

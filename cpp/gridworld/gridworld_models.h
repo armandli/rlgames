@@ -433,6 +433,7 @@ public:
     x = t::relu(l2(x));
     t::Tensor co = t::relu(l3c(x.detach())); //no backprop
     co = t::tanh(l4c(co));
+    co = co.squeeze();
     return co;
   }
   ACTensor forward(t::Tensor x){
@@ -441,6 +442,7 @@ public:
     t::Tensor ao = t::softmax(l3a(x), -1);
     t::Tensor co = t::relu(l3c(x.detach())); //no backprop
     co = t::tanh(l4c(co));
+    co = co.squeeze();
     return ACTensor(ao, co);
   }
 };

@@ -1,6 +1,6 @@
-app=test_pytorch_op
+app=test_dist_qlearning
 
-SOURCES=test_pytorch_op.cpp
+SOURCES=test_dist_qlearning.cpp
 
 OBJECTS=$(SOURCES:.cpp=.o)
 

@@ -1,18 +1,15 @@
-app=test_pytorch_op
+app=ac_learning
 
-SOURCES=test_pytorch_op.cpp
+SOURCES=ac_learning.cpp
 
 OBJECTS=$(SOURCES:.cpp=.o)
 
 all: $(app)
 
-#NOTE: tests are using the official torch library install, not the nightly
-
 DEBUG=-g
-INCLUDES=-I./ -I../ -I../../ -I/usr/include/ -I/usr/include/torch/csrc/api/include/
+INCLUDES=-I./ -I../ -I/usr/include/ -I/usr/include/torch/csrc/api/include/
 OPT=-O3
 LIBS=-lc10 -lc10_cuda -ltorch -lcaffe2_nvrtc -lcaffe2_observers -lcaffe2_detectron_ops_gpu -lcaffe2_module_test_dynamic -lshm
-
 DEFINES=
 
 CXXFLAGS=-std=c++17 -MD -pedantic -O3 -Wall -Wextra $(DEFINES) $(INCLUDES) $(OPT) $(DEBUG)
