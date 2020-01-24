@@ -3,6 +3,7 @@
 #include <learning_metaparam.h>
 #include <deep_qlearning3.h>
 #include <gridworld_simulation.h>
+#include <export_util.h>
 
 #include <torch/torch.h>
 
@@ -75,4 +76,7 @@ int main(int argc, char* argv[]){
       win_count++;
   }
   s::cout << "Average Reward per 100 games: " << ((float)sum / (float)count) << " win percentage: " << ((float)win_count / (float)count) << s::endl;
+
+  t::save(rlm.model, "deep_qlearning3.pt");
+  m::save_loss_array("deep_qlearning3_train_loss.json", losses);
 }
