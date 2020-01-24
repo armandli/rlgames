@@ -89,7 +89,7 @@ class GridEnv {
   g::GridWorld random_maze_init() const {
     assert(mSize > 1);
 
-    g::GridWorld w(mSize, 0, 0, 0, rand(), true);
+    g::GridWorld w(mSize, 0, 0, 0, rand(), false);
     w.remove_player();
     const g::GridState& ws = w.get_state();
 
@@ -174,11 +174,11 @@ public:
   }
 
   float max_reward(const g::GridWorld& ins) const {
-    return (float)ins.max_reward();
+    return (float)ins.max_reward() * 2;
   }
 
   float min_reward(const g::GridWorld& ins) const {
-    return (float)ins.min_reward();
+    return (float)ins.min_reward() * 2;
   }
 
   void apply_action(g::GridWorld& ins, g::Action action) const {

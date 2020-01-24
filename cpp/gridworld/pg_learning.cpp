@@ -3,6 +3,7 @@
 #include <gridworld_simulation.h>
 #include <learning_metaparam.h>
 #include <pg_learning.h>
+#include <export_util.h>
 
 #include <torch/torch.h>
 
@@ -66,4 +67,7 @@ int main(int argc, char* argv[]){
       win_count++;
   }
   s::cout << "Average Reward per 100 games: " << ((float)sum / (float)count) << " win percentage: " << ((float)win_count / (float)count) << s::endl;
+
+  t::save(rlm.model, "pg_learning.pt");
+  m::save_loss_array("pg_learning_train_loss.json", losses);
 }

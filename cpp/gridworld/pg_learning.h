@@ -55,11 +55,10 @@ void pg_learning(
         step_count_accum++;
       }
       //higher discount on earlier action than later action
-      for (uint64 i = step_count - 1, j = step_count_accum - 1, pow = 0; i < step_count; --i, --j, ++pow)
-      for (uint64 i = step_count - 1, pow = 0; i < step_count; --i, ++pow)
+      for (uint64 j = step_count - 1, pow = 0; j < step_count; --j, ++pow)
         discount_vec.push_back(s::pow(mp.gamma, pow));
       //rewards are supposed to be sum of future rewards, not historically accumulated rewards
-      for (uint64 i = step_count - 2, j = step_count_accum - 2; i < mp.max_steps; --i, --j)
+      for (uint64 k = step_count - 2, j = step_count_accum - 2; k < mp.max_steps; --k, --j)
         reward_vec[j] = reward_vec[j+1] - reward_vec[j];
     }
 
