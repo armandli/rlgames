@@ -43,10 +43,10 @@ t::Tensor construct_nonterminal_support(
       float ml = s::floor(nv);
       float mu = s::ceil(nv);
       if (ml == mu){
-        buffer[i * reward_dist_slices + (uint)ml] += 1.F;
+        buffer[i * reward_dist_slices + (uint)ml] += 1.F / (float)reward_dist_slices;
       } else {
-        buffer[i * reward_dist_slices + (uint)ml] += (nv - ml);
-        buffer[i * reward_dist_slices + (uint)mu] += (mu - nv);
+        buffer[i * reward_dist_slices + (uint)ml] += (nv - ml) / (float)reward_dist_slices;
+        buffer[i * reward_dist_slices + (uint)mu] += (mu - nv) / (float)reward_dist_slices;
       }
     }
 
@@ -86,7 +86,7 @@ void distributional_qlearning2(
   t::Device cpu_device(t::kCPU);
 
   s::uniform_real_distribution<double> dist(0., 1.);
-  s::uniform_int_distribution<uint> rand_action(0U, env.action_size() - 1);
+  s::uniform_int_distribution<uint> rand_action(0U, rlm.action_encoder.action_size() - 1);
   s::default_random_engine reng(random_seed);
 
   //distribution construction buffer
@@ -106,7 +106,7 @@ void distributional_qlearning2(
 
   PriExpReplayBuffer<ACTION> replay_buffer(
     mp.erb.sz,
-    env.state_size(),
+    rlm.state_encoder.state_size().flatten_size(),
     device,
     random_seed,
     mp.erb.alpha,

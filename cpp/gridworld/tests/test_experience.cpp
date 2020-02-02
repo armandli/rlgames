@@ -22,7 +22,7 @@ TEST(TestExperience, TestExperienceUniqueness1){
   m::GridStateEncoder sencoder(env);
   m::GridActionEncoder aencoder(env);
 
-  s::uniform_int_distribution<uint> rand_action(0U, env.action_size() - 1);
+  s::uniform_int_distribution<uint> rand_action(0U, aencoder.action_size() - 1);
   s::default_random_engine reng(time(NULL));
 
   uint buffer_size = 10;
@@ -43,8 +43,8 @@ TEST(TestExperience, TestExperienceUniqueness1){
   }
   m::ExpBatch<m::Exp<g::Action>> batch = replay_buffer.sample_batch(buffer_size);
 
-  t::Tensor tstatemap = t::zeros({buffer_size, env.state_size()});
-  t::Tensor tnstatemap = t::zeros({buffer_size, env.state_size()});
+  t::Tensor tstatemap = t::zeros({buffer_size, sencoder.state_size().flatten_size()});
+  t::Tensor tnstatemap = t::zeros({buffer_size, sencoder.state_size().flatten_size()});
   uint h = 0;
   for (m::Exp<g::Action>& exp : batch){
     tstatemap[h] = exp.tstate;

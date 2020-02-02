@@ -4,6 +4,9 @@
 #include <torch/torch.h>
 
 #include <gridworld.h>
+#include <learning_util.h>
+
+#include <learning_debug.h>
 
 #include <cassert>
 #include <cstdlib>
@@ -154,14 +157,6 @@ public:
     return mSize;
   }
 
-  uint state_size() const {
-    return mSize * mSize * 4;
-  }
-
-  uint action_size() const {
-    return (uint)g::Action::MAX;
-  }
-
   float get_reward(const g::GridWorld& ins) const {
     float reward = ins.get_reward();
     if (reward == 0){
@@ -194,13 +189,15 @@ public:
   }
 };
 
+
 class GridStateEncoder {
   const GridEnv& mEnv;
   mutable float* mState;
 public:
   explicit GridStateEncoder(const GridEnv& env):
     mEnv(env), mState(nullptr) {
-    mState = new float[env.state_size() * 4];
+    uint sz = env.size();
+    mState = new float[sz * sz * 4];
   }
   GridStateEncoder(GridStateEncoder&& o): mEnv(o.mEnv), mState(o.mState) {
     o.mState = nullptr;
@@ -220,7 +217,7 @@ public:
     //Plane2: walls
     //Plane3: sinks
     //Plane4: goals
-    for (uint i = 0; i < mEnv.state_size(); ++i)
+    for (uint i = 0; i < encoded_state_sz; ++i)
       mState[i] = 0.;
     for (uint i = 0; i < sz * sz; ++i)
       switch (state.get(i)){
@@ -280,6 +277,105 @@ public:
         ret.set_cell(g::Obj::Player, i);
     return ret;
   }
+
+  Dim state_size() const {
+    uint sz = mEnv.size();
+    return Dim(sz * sz * 4);
+  }
+};
+
+//convolutional gridworld state encoder
+class GridStateConvEncoder {
+  const GridEnv& mEnv;
+  mutable float* mState;
+public:
+  explicit GridStateConvEncoder(const GridEnv& env):
+    mEnv(env), mState(nullptr) {
+    mState = new float[env.size() * env.size() * 4];
+  }
+  GridStateConvEncoder(GridStateConvEncoder&& o): mEnv(o.mEnv), mState(o.mState) {
+    o.mState = nullptr;
+  }
+  ~GridStateConvEncoder(){
+    if (mState){
+      delete[] mState;
+      mState = nullptr;
+    }
+  }
+
+  t::Tensor encode_state(const g::GridState& state, t::Device device) const {
+    uint sz = mEnv.size();
+    uint psz = sz * sz;
+    uint full_size = state_size().flatten_size();
+    //Plane1: player
+    //Plane2: walls
+    //Plane3: sinks
+    //Plane4: goals
+    for (uint i = 0; i < full_size; ++i)
+      mState[i] = 0.;
+    for (uint i = 0; i < sz * sz; ++i)
+      switch (state.get(i)){
+        case g::Obj::Empty: break;
+        case g::Obj::Player:
+          mState[i] = 1.f;
+          break;
+        case g::Obj::Wall:
+          mState[i + psz] = 1.f;
+          break;
+        case g::Obj::Sink:
+          mState[i + psz * 2] = 1.f;
+          break;
+        case g::Obj::Goal:
+          mState[i + psz * 3] = 1.f;
+          break;
+        case g::Obj::PS:
+          mState[i] = 1.f;
+          mState[i + psz * 2] = 1.f;
+          break;
+        case g::Obj::PG:
+          mState[i] = 1.f;
+          mState[i + psz * 3] = 1.f;
+          break;
+        default: assert(false);
+      }
+    t::Tensor m = t::from_blob(mState, {4, sz, sz});
+    if (device.type() == t::kCUDA){
+      return m.to(device);
+    } else {
+      return m.clone();
+    }
+  }
+
+  g::GridState decode_state(t::Tensor tensor) const {
+    //TODO: see if I can read directly from GPU memory
+    uint sz = mEnv.size();
+    uint encoded_state_sz = sz * sz * 4;
+    s::memcpy(mState, tensor.data_ptr(), encoded_state_sz);
+    g::GridState ret(sz);
+
+    //Plane1: player
+    //Plane2: walls
+    //Plane3: sinks
+    //Plane4: goals
+    for (uint i = sz * sz; i < sz * sz * 2; ++i)
+      if (mState[i] == 1.f)
+        ret.set_cell(g::Obj::Wall, i - sz * sz);
+    for (uint i = sz * sz * 2; i < sz * sz * 3; ++i)
+      if (mState[i] == 1.f)
+        ret.set_cell(g::Obj::Sink, i - sz * sz * 2);
+    for (uint i = sz * sz * 3; i < sz * sz * 4; ++i)
+      if (mState[i] == 1.f)
+        ret.set_cell(g::Obj::Goal, i - sz * sz * 3);
+    for (uint i = 0; i < sz * sz; ++i)
+      if (mState[i] == 1.f)
+        ret.set_cell(g::Obj::Player, i);
+    return ret;
+  }
+
+  Dim state_size() const {
+    uint sz = mEnv.size();
+    return Dim(4, sz, sz);
+  }
 };
 
 class GridActionEncoder {
@@ -288,7 +384,7 @@ class GridActionEncoder {
 public:
   explicit GridActionEncoder(const GridEnv& env):
     mEnv(env), mAction(nullptr) {
-    mAction = new float[env.action_size()];
+    mAction = new float[(uint)g::Action::MAX];
   }
   GridActionEncoder(GridActionEncoder&& o): mEnv(o.mEnv), mAction(o.mAction) {
     o.mAction = nullptr;
@@ -301,7 +397,7 @@ public:
   }
 
   t::Tensor encode_action(g::Action action, t::Device device) const {
-    uint sz = mEnv.action_size();
+    uint sz = action_size();
     for (uint i = 0; i < sz; ++i)
       mAction[i] = 0.f;
 
@@ -331,7 +427,7 @@ public:
   g::Action decode_action(t::Tensor tensor) const {
     uint max_idx = t::argmax(tensor).item().to<int>();
 
-    assert(max_idx < mEnv.action_size());
+    assert(max_idx < action_size());
 
     switch (max_idx){
     case 0: return g::Action::UP;
@@ -340,6 +436,10 @@ public:
     case 3: return g::Action::RT;
     default: assert(false);
     }
+  }
+
+  uint action_size() const {
+    return (uint)g::Action::MAX;
   }
 };
 
@@ -364,28 +464,87 @@ public:
 };
 TORCH_MODULE(SimpleQModel);
 
-class MediumQModelImpl : public t::nn::Module {
-  t::nn::Linear l1, l2, l3, l4;
+class SimpleConvQModelImpl : public t::nn::Module {
+  t::nn::Conv2d cl1, cl2;
+  t::nn::Linear l3;
 public:
-  MediumQModelImpl(sint64 isz, sint64 l1sz, sint64 l2sz, sint64 l3sz, sint64 osz):
-    l1(register_module("l1", t::nn::Linear(isz, l1sz))),
-    l2(register_module("l2", t::nn::Linear(l1sz, l2sz))),
-    l3(register_module("l3", t::nn::Linear(l2sz, l3sz))),
-    l4(register_module("l4", t::nn::Linear(l3sz, osz)))
+  SimpleConvQModelImpl(Dim isz, Dim cl1sz, Dim cl2sz, sint64 osz):
+    cl1(register_module("cl1", t::nn::Conv2d(t::nn::Conv2dOptions(isz.x, cl1sz.x, cl1sz.y)))),
+    cl2(register_module("cl1", t::nn::Conv2d(t::nn::Conv2dOptions(cl1sz.x, cl2sz.x, cl2sz.y)))),
+    l3(register_module("l3", t::nn::Linear((isz.y - cl1sz.y - cl2sz.y + 2) * (isz.z - cl1sz.z - cl2sz.z + 2) * cl2sz.x, osz)))
   {}
-  MediumQModelImpl(const MediumQModelImpl& o):
-    l1(o.l1->options), l2(o.l2->options), l3(o.l3->options), l4(o.l4->options)
+  SimpleConvQModelImpl(const SimpleConvQModelImpl& o):
+    cl1(conv_options<2>(o.cl1->options)), cl2(conv_options<2>(o.cl2->options)), l3(o.l3->options)
   {}
-
   t::Tensor forward(t::Tensor x){
-    x = t::relu(l1(x));
-    x = t::relu(l2(x));
-    x = t::relu(l3(x));
-    x = l4(x);
+    x = t::relu(cl1(x));
+    x = t::relu(cl2(x));
+    x = l3(x.flatten());
     return x;
   }
 };
-TORCH_MODULE(MediumQModel);
+TORCH_MODULE(SimpleConvQModel);
+
+class SimpleICMQModelImpl : public t::nn::Module {
+  // share state encoder across all functions; trained only by inverse dynamics module;
+  // this way the state encoder will only encode state that's going to affect the agent's
+  // action
+  t::nn::Conv2d sec1, sec2;
+  t::nn::Linear sel1, sel2, l3, l4, fdl1, idl1;
+  Dim           state_size;
+public:
+  SimpleICMQModelImpl(Dim ssz, Dim sec1sz, Dim sec2sz, sint64 sfsz, sint64 l1sz, sint64 asz):
+    sec1(register_module("sec1", t::nn::Conv2d(t::nn::Conv2dOptions(ssz.x, sec1sz.x, sec1sz.y)))),
+    sec2(register_module("sec2", t::nn::Conv2d(t::nn::Conv2dOptions(sec1sz.x, sec2sz.x, sec2sz.y)))),
+    sel1(register_module("sel1", t::nn::Linear((ssz.y - sec1sz.y - sec2sz.y + 2) * (ssz.z - sec1sz.z - sec2sz.z + 2) * sec2sz.x, sfsz))),
+    l3(register_module("l3", t::nn::Linear(sfsz, l1sz))),
+    l4(register_module("l4", t::nn::Linear(l1sz, asz))),
+    fdl1(register_module("fdl1", t::nn::Linear(sfsz + asz, sfsz))),
+    idl1(register_module("idl1", t::nn::Linear(sfsz * 2, asz)))
+    state_size(ssz)
+  {}
+  SimpleICMQModelImpl(const SimpleICMQModelImpl& o):
+    sec1(conv_options<2>(o.sec1->options)),
+    sec2(conv_options<2>(o.sec2->options)),
+    sel1(o.sel1->options),
+    l3(o.l3->options),
+    l4(o.l4->options),
+    fdl1(o.fdl1->options),
+    idl1(o.idl1->options),
+    state_size(o.state_size)
+  {}
+  t::Tensor featurize_state(t::Tensor state){
+    if (state.dim() == 3){
+      state = state.reshape({1, state_size.x, state_size.y, state_size.z});
+    }
+    state = t::relu(sec1(state));
+    state = t::relu(sec2(state));
+    state = t::relu(sel1(state.flatten(1, -1)));
+    return state;
+  }
+  t::Tensor icm_forward_dynamics(t::Tensor state, t::Tensor action){
+    state = featurize_state(state);
+    t::Tensor x = t::cat({state, action}, -1);
+    //do not use forward dynamics to learn state feature
+    x = t::relu(fdl1(x.detach()));
+    return x;
+  }
+  t::Tensor icm_inverse_dynamics(t::Tensor state, t::Tensor nstate){
+    state  = featurize_state(state);
+    nstate = featurize_state(nstate);
+    t::Tensor x = t::cat({state, nstate}, -1);
+    x = t::softmax(idl1(x), -1);
+    return x;
+  }
+  t::Tensor forward(t::Tensor state){
+    state = featurize_state(state);
+    //do not use Q learning to learn the state feature either
+    state = t::relu(l3(state.detach()));
+    state = l4(state);
+    return state;
+  }
+};
+TORCH_MODULE(SimpleICMQModel);
 
 class SimplePolicyModelImpl : public t::nn::Module {
   t::nn::Linear l1, l2, l3;

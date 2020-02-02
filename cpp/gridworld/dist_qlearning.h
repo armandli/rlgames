@@ -43,10 +43,10 @@ t::Tensor construct_nonterminal_support(
       float ml = s::floor(nv);
       float mu = s::ceil(nv);
       if (ml == mu){
-        buffer[i * reward_dist_slices + (uint)ml] += 1.F;
+        buffer[i * reward_dist_slices + (uint)ml] += 1.F / (float)reward_dist_slices;
       } else {
-        buffer[i * reward_dist_slices + (uint)ml] += (nv - ml);
-        buffer[i * reward_dist_slices + (uint)mu] += (mu - nv);
+        buffer[i * reward_dist_slices + (uint)ml] += (nv - ml) / (float)reward_dist_slices;
+        buffer[i * reward_dist_slices + (uint)mu] += (mu - nv) / (float)reward_dist_slices;
       }
     }
 
@@ -86,7 +86,7 @@ void distributional_qlearning(
   t::Device cpu_device(t::kCPU);
 
   s::uniform_real_distribution<double> dist(0., 1.);
-  s::uniform_int_distribution<uint> rand_action(0U, env.action_size() - 1);
+  s::uniform_int_distribution<uint> rand_action(0U, rlm.action_encoder.action_size() - 1);
   s::default_random_engine reng(random_seed);
 
   //distribution construction buffer
@@ -104,7 +104,7 @@ void distributional_qlearning(
   t::Tensor support = t::from_blob(support_vec.data(), {mp.reward_dist_slices});
   t::Tensor support_dev = support.to(device);
 
-  ExpReplayBuffer2<ACTION> replay_buffer(mp.erb.sz, env.state_size(), device);
+  ExpReplayBuffer2<ACTION> replay_buffer(mp.erb.sz, rlm.state_encoder.state_size().flatten_size(), device);
 
   decltype(rlm.model) targetn(rlm.model);
   copy_state(targetn, rlm.model);
@@ -157,7 +157,7 @@ void distributional_qlearning(
         dnqval_dev = t::squeeze(t::gather(dnqval_dev, 1, dnqselect_dev));
         t::Tensor ntsupport = construct_nonterminal_support(dist_buffer, actions_rewards.rewards, support_vec, mp.erb.batchsize, mp.reward_dist_slices, env.max_reward(ins), env.min_reward(ins), zdelta, mp.gamma);
         t::Tensor ntsupport_dev = ntsupport.to(device);
-        t::Tensor nttarget_dev = dnqval_dev * t::softmax(ntsupport_dev, -1);
+        t::Tensor nttarget_dev = dnqval_dev * ntsupport_dev;
         nttarget_dev = t::softmax(nttarget_dev, -1);
 
         //construct target distribution assuming every sample is terminal

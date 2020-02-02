@@ -31,7 +31,7 @@ void ac_learning(
 
   t::Device cpu_device(t::kCPU);
   s::default_random_engine reng(random_seed);
-  ExpBuffer<ACTION> buffer(mp.batchsize * mp.max_steps, env.state_size(), device);
+  ExpBuffer<ACTION> buffer(mp.batchsize * mp.max_steps, rlm.state_encoder.state_size().flatten_size(), device);
 
   decltype(rlm.model) targetn(rlm.model);
   rlm.model->to(device);
@@ -50,7 +50,7 @@ void ac_learning(
         t::Tensor tstate_dev = rlm.state_encoder.encode_state(env.get_state(ins), device);
         t::Tensor tadist_dev = rlm.model->actor_forward(tstate_dev);
         t::Tensor tadist = tadist_dev.to(cpu_device);
-        ACTION action = (ACTION)sample_discrete_distribution(tadist.data_ptr<float>(), env.action_size(), reng);
+        ACTION action = (ACTION)sample_discrete_distribution(tadist.data_ptr<float>(), rlm.action_encoder.action_size(), reng);
         env.apply_action(ins, action);
         float reward = env.get_reward(ins);
         t::Tensor tnstate_dev = rlm.state_encoder.encode_state(env.get_state(ins), device);
@@ -79,8 +79,11 @@ void ac_learning(
     avs.actor_out = avs.actor_out.diagonal();
 
     //the advantage function r + gamma * V(s') - V(s)
-    t::Tensor g = reward_dev.detach() + mp.gamma * terminal_dev.detach() * nvs.detach() - avs.critic_out;
-    t::Tensor loss_dev = t::mean(-1.F * g * t::log(avs.actor_out));
+    t::Tensor targetv_dev = reward_dev + mp.gamma * terminal_dev * nvs;
+    t::Tensor g = targetv_dev - avs.critic_out;
+
+    //loss = actor loss + value function loss
+    t::Tensor loss_dev = t::mean(-1.F * g.detach() * t::log(avs.actor_out)) + t::mse_loss(avs.critic_out,  targetv_dev.detach());
 
     loss_dev.backward();
     rlm.optimizer.step();

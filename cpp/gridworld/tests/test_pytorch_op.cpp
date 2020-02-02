@@ -369,6 +369,7 @@ void test_matrix_cell_multiply(){
   s::cout << r << s::endl;
 }
 
+//concatenate multiple vectors together into a matrix
 void test_cat(){
   float src_data[] = {
     0, 1, 2, 3,
@@ -403,6 +404,30 @@ void test_cat(){
   r = t::squeeze(t::gather(r, 0, select));
 
   s::cout << "After doing gather" << s::endl;
+  s::cout << r << s::endl;
+}
+
+//concatenate 2 vectors together into 1 vector
+void test_cat2(){
+  float src_data[] = {
+    0, 1, 2, 3,
+    4, 5, 6, 7,
+    8, 9, 10, 11,
+    12, 13, 14, 15,
+  };
+  t::Tensor src1 = t::from_blob(src_data, {16});
+
+  float src2_data[] = {
+    16, 17, 18, 19,
+    20, 21, 22, 23,
+    24, 25, 26, 27,
+    28, 29, 30, 31,
+  };
+  t::Tensor src2 = t::from_blob(src2_data, {16});
+
+  t::Tensor r = t::cat({src1, src2}, 0);
+
+  s::cout << "Concatenate vectors into one vector" << s::endl;
   s::cout << r << s::endl;
 }
 
@@ -444,6 +469,48 @@ void test_slice(){
   s::cout << r << s::endl;
 }
 
+//testing batch selection for experience replay buffer
+void test_gather4(){
+  float src_data[] = {
+    1,2,3,4,
+    5,6,7,8,
+    9,10,11,12,
+    13,14,15,16,
+    17,18,19,20,
+    21,22,23,24,
+  };
+  t::Tensor src = t::from_blob(src_data, {3, 2, 2, 2});
+
+  long index_data[] = {
+    1,1,1,1,1,1,1,1,
+//    2,2,2,2,2,2,2,2,
+    0,0,0,0,0,0,0,0,
+  };
+  t::Tensor index = t::from_blob(index_data, {2, 2, 2, 2}, t::kLong);
+  t::Tensor r = t::gather(src, 0, index);
+
+  s::cout << "gather 4" << s::endl;
+  s::cout << r << s::endl;
+}
+
+//test converting a enum vector into a one-hot-encoding matrix of the enum vector
+void test_scatter1(){
+  long e_data[] = {
+    1,2,3,0,3,2,0,1,
+  };
+  t::Tensor e = t::from_blob(e_data, {8, 1}, t::kLong);
+
+  float src_data[] = {
+    1.,1.,1.,1.,1.,1.,1.,1.,
+  };
+  t::Tensor src = t::from_blob(src_data, {8, 1});
+
+  t::Tensor r = t::zeros({8, 4}).scatter_(1, e, src);
+
+  s::cout << "one-hot-encode" << s::endl;
+  s::cout << r << s::endl;
+}
+
 int main(){
   test_softmax();
   test_index_select();
@@ -466,4 +533,7 @@ int main(){
   test_logical_not2();
   test_from_blob_selection();
   test_slice();
+  test_gather4();
+  test_cat2();
+  test_scatter1();
 }

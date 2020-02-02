@@ -1,7 +1,8 @@
 #include <gridworld.h>
 #include <gridworld_models.h>
+#include <learning_util.h>
 #include <learning_metaparam.h>
-#include <double_qlearning.h>
+#include <double_qlearning4.h>
 #include <gridworld_simulation.h>
 
 #include <torch/torch.h>
@@ -15,10 +16,10 @@ namespace g = gridworld;
 namespace t = torch;
 namespace m = gridworld_pt;
 
-//double q learning using random grid world of size k
+//double q learning with ICM using random grid world of size k
 
 int main(int argc, char* argv[]){
-  uint grid_size = 4;
+  uint grid_size = 16;
   if (argc > 1)
     grid_size = atoi(argv[1]);
 
@@ -28,29 +29,28 @@ int main(int argc, char* argv[]){
     device = t::Device(t::kCUDA);
   }
 
-  m::GridEnv env(grid_size, m::GridEnvMode::RandomSimple);
+  m::GridEnv env(grid_size, m::GridEnvMode::RandomSimple, false /*step discount*/);
   //m::GridEnv env(grid_size, m::GridEnvMode::StaticSimple);
-  m::GridStateEncoder state_encoder(env);
+  m::GridStateConvEncoder state_encoder(env);
   m::GridActionEncoder action_encoder(env);
-  uint state_size = state_encoder.state_size().flatten_size();
-
-  m::RLModel<m::SimpleQModel, m::GridStateEncoder, m::GridActionEncoder, t::optim::Adam> rlm(
-    m::SimpleQModel(state_size, 164, 150, action_encoder.action_size()),
+  m::RLModel<m::SimpleICMQModel, m::GridStateConvEncoder, m::GridActionEncoder, t::optim::Adam> rlm(
+    m::SimpleICMQModel(state_encoder.state_size(), m::Dim(4, 5, 5), m::Dim(6, 3, 3), grid_size * grid_size * 2, 128, action_encoder.action_size()),
     s::move(state_encoder),
     s::move(action_encoder),
-    1e-3F // learning rate
+    1e-4F //learning rate
   );
-  m::qlearning_metaparams<m::epsilon_greedy_metaparams, m::experience_replay_metaparams> mp;
+  m::qlearning_metaparams<m::simple_icm_metaparams, m::experience_replay_metaparams> mp;
   mp.epochs = 5000;
-  mp.gamma = 0.9;
+  mp.gamma = 0.98;
   mp.tc_steps = 500;
-  mp.max_steps = state_size / 4 / 2;
+  mp.max_steps = grid_size * grid_size / (grid_size / 2);
+  mp.exp.beta = 1.0;
   mp.exp.epsilon = 1.;
   mp.erb.sz = 2000;
-  mp.erb.batchsize = 250;
+  mp.erb.batchsize = 256;
   s::vector<float> losses;
 
-  m::double_qlearning<decltype(env), decltype(rlm), g::GridWorld, g::Action>(
+  m::double_qlearning4<decltype(env), decltype(rlm), g::GridWorld, g::Action>(
     env,
     rlm,
     device,
@@ -59,7 +59,7 @@ int main(int argc, char* argv[]){
     time(NULL)
   );
 
-  m::simulate_gridworld(env, rlm, state_size / 4 / 2, device, true);
+  m::simulate_gridworld(env, rlm, mp.max_steps, device, true);
 
   if (losses.size() > 0){
     s::cout << "Final Loss: " << losses.back() << s::endl;
@@ -69,7 +69,7 @@ int main(int argc, char* argv[]){
   int win_count = 0;
   int count = 100;
   for (int i = 0; i < count; ++i){
-    int r = m::simulate_gridworld(env, rlm, state_size / 4 / 2, device, false);
+    int r = m::simulate_gridworld(env, rlm, mp.max_steps, device, false);
     sum += r;
     if (r > 1)
       win_count++;

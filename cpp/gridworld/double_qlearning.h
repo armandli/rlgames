@@ -35,7 +35,7 @@ void double_qlearning(
   s::vector<float>& losses,
   uint64 random_seed){
   s::uniform_real_distribution<double> dist(0., 1.);
-  s::uniform_int_distribution<uint> rand_action(0U, env.action_size() - 1);
+  s::uniform_int_distribution<uint> rand_action(0U, rlm.action_encoder.action_size() - 1);
   s::default_random_engine reng(random_seed);
 
   ExpReplayBuffer<Exp<ACTION>> replay_buffer(mp.erb.sz);
@@ -71,8 +71,8 @@ void double_qlearning(
       if (replay_buffer.is_filled()){
         rlm.model->zero_grad();
         ExpBatch<Exp<ACTION>> batch = replay_buffer.sample_batch(mp.erb.batchsize);
-        t::Tensor output_dev = t::zeros({mp.erb.batchsize, env.action_size()}, device);
-        t::Tensor target_dev = t::zeros({mp.erb.batchsize, env.action_size()}, device);
+        t::Tensor output_dev = t::zeros({mp.erb.batchsize, rlm.action_encoder.action_size()}, device);
+        t::Tensor target_dev = t::zeros({mp.erb.batchsize, rlm.action_encoder.action_size()}, device);
         uint h = 0;
         for (Exp<ACTION>& exp : batch){
           t::Tensor oqval_dev = rlm.model->forward(exp.tstate);

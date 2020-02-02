@@ -32,18 +32,21 @@ int main(int argc, char* argv[]){
 
   m::GridEnv env(grid_size, m::GridEnvMode::RandomSimple, false /*no step discount*/);
   //m::GridEnv env(grid_size, m::GridEnvMode::StaticSimple, false /*no step discount*/);
+  m::GridStateEncoder state_encoder(env);
+  m::GridActionEncoder action_encoder(env);
+  uint state_size = state_encoder.state_size().flatten_size();
 
   m::RLModel<m::SimplePolicyModel, m::GridStateEncoder, m::GridActionEncoder, t::optim::Adam> rlm(
-    m::SimplePolicyModel(env.state_size(), 164, 150, env.action_size()),
-    m::GridStateEncoder(env),
-    m::GridActionEncoder(env),
+    m::SimplePolicyModel(state_size, 164, 150, action_encoder.action_size()),
+    s::move(state_encoder),
+    s::move(action_encoder),
     1e-5F // learning rate
   );
   m::pg_metaparams mp;
   mp.epochs = 8000;
   mp.batchsize = 8;
   mp.gamma = 0.99;
-  mp.max_steps = env.state_size() / 4;
+  mp.max_steps = state_size / 4;
   s::vector<float> losses;
 
   m::pg_learning<decltype(env), decltype(rlm), g::GridWorld, g::Action>(
@@ -55,13 +58,13 @@ int main(int argc, char* argv[]){
     time(NULL)
   );
 
-  m::simulate_gridworld(env, rlm, env.state_size() / 4, device, true);
+  m::simulate_gridworld(env, rlm, state_size / 4, device, true);
 
   int sum = 0;
   int win_count = 0;
   int count = 100;
   for (int i = 0; i < count; ++i){
-    int r = m::simulate_gridworld(env, rlm, env.state_size() / 4, device, false);
+    int r = m::simulate_gridworld(env, rlm, state_size / 4, device, false);
     sum += r;
     if (r > 1)
       win_count++;
