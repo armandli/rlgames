@@ -46,7 +46,7 @@ void pg_learning(
         t::Tensor tstate_dev = rlm.state_encoder.encode_state(env.get_state(ins), device);
         t::Tensor tadist_dev = rlm.model->forward(tstate_dev);
         t::Tensor tadist = tadist_dev.to(cpu_device);
-        ACTION action = (ACTION)sample_discrete_distribution(tadist.data_ptr<float>(), env.action_size(), reng);
+        ACTION action = (ACTION)sample_discrete_distribution(tadist.data_ptr<float>(), rlm.action_encoder.action_size(), reng);
         env.apply_action(ins, action);
         action_dev[step_count_accum] = tadist_dev[(uint)action];
         reward_accum += env.get_reward(ins);

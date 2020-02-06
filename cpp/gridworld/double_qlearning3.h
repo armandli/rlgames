@@ -35,12 +35,12 @@ void double_qlearning3(
   s::vector<float>& losses,
   uint64 random_seed){
   s::uniform_real_distribution<double> dist(0., 1.);
-  s::uniform_int_distribution<uint> rand_action(0U, env.action_size() - 1);
+  s::uniform_int_distribution<uint> rand_action(0U, rlm.action_encoder.action_size() - 1);
   s::default_random_engine reng(random_seed);
 
   PriExpReplayBuffer<ACTION> replay_buffer(
     mp.erb.sz,
-    env.state_size(),
+    rlm.state_encoder.state_size().flatten_size(),
     device,
     random_seed,
     mp.erb.alpha,

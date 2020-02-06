@@ -31,9 +31,11 @@ void ac_learning(
 
   t::Device cpu_device(t::kCPU);
   s::default_random_engine reng(random_seed);
-  ExpBuffer<ACTION> buffer(mp.batchsize * mp.max_steps, env.state_size(), device);
+  ExpBuffer<ACTION> buffer(mp.batchsize * mp.max_steps, rlm.state_encoder.state_size().flatten_size(), device);
 
   decltype(rlm.model) targetn(rlm.model);
+  copy_state(targetn, rlm.model);
+
   rlm.model->to(device);
   targetn->to(device);
 
@@ -50,7 +52,7 @@ void ac_learning(
         t::Tensor tstate_dev = rlm.state_encoder.encode_state(env.get_state(ins), device);
         t::Tensor tadist_dev = rlm.model->actor_forward(tstate_dev);
         t::Tensor tadist = tadist_dev.to(cpu_device);
-        ACTION action = (ACTION)sample_discrete_distribution(tadist.data_ptr<float>(), env.action_size(), reng);
+        ACTION action = (ACTION)sample_discrete_distribution(tadist.data_ptr<float>(), rlm.action_encoder.action_size(), reng);
         env.apply_action(ins, action);
         float reward = env.get_reward(ins);
         t::Tensor tnstate_dev = rlm.state_encoder.encode_state(env.get_state(ins), device);
@@ -64,28 +66,29 @@ void ac_learning(
     rlm.model->zero_grad();
 
     ARTArray actions_rewards = buffer.actions_n_rewards();
-    t::Tensor action = t::from_blob(actions_rewards.actions.data(), {(sint64)actions_rewards.actions.size()}, t::kLong);
-    t::Tensor action_dev = action.to(device);
-    t::Tensor reward = t::from_blob(actions_rewards.rewards.data(), {(sint64)actions_rewards.rewards.size()});
-    t::Tensor reward_dev = reward.to(device);
-    t::Tensor terminal = t::from_blob(actions_rewards.is_terminals.data(), {(sint64)actions_rewards.is_terminals.size()}, t::kLong);
-    t::Tensor terminal_dev = terminal.to(device);
-    terminal_dev = terminal_dev.logical_not();
+    t::Tensor action_dev = t::from_blob(actions_rewards.actions.data(), {(sint64)actions_rewards.actions.size()}, t::kLong).to(device);
+    t::Tensor reward_dev = t::from_blob(actions_rewards.rewards.data(), {(sint64)actions_rewards.rewards.size()}).to(device);
+    t::Tensor terminal_dev = t::from_blob(actions_rewards.is_terminals.data(), {(sint64)actions_rewards.is_terminals.size()}, t::kLong).to(device).logical_not();
 
-    ACTensor avs = rlm.model->forward(buffer.states_tensor());
-    t::Tensor nvs = targetn->critic_forward(buffer.nstates_tensor());
-
-    avs.actor_out = t::index_select(avs.actor_out, 1, action_dev);
-    avs.actor_out = avs.actor_out.diagonal();
+    ACTensor avs_dev = rlm.model->forward(buffer.states_tensor());
+    avs_dev.actor_out = t::index_select(avs_dev.actor_out, 1, action_dev).diagonal();
+    t::Tensor nvs_dev = targetn->critic_forward(buffer.nstates_tensor());
 
     //the advantage function r + gamma * V(s') - V(s)
-    t::Tensor g = reward_dev.detach() + mp.gamma * terminal_dev.detach() * nvs.detach() - avs.critic_out;
-    t::Tensor loss_dev = t::mean(-1.F * g * t::log(avs.actor_out));
+    t::Tensor targetv_dev = reward_dev + mp.gamma * terminal_dev * nvs_dev;
+    t::Tensor g = targetv_dev - avs_dev.critic_out;
+
+    //loss = actor loss + value function loss
+    t::Tensor actor_loss_dev = t::mean(-1.F * g.detach() * t::log(avs_dev.actor_out));
+    t::Tensor critic_loss_dev = t::mse_loss(avs_dev.critic_out, targetv_dev.detach());
+    t::Tensor loss_dev = actor_loss_dev + critic_loss_dev;
 
     loss_dev.backward();
     rlm.optimizer.step();
 
     if (i % loss_sampling_interval == 0){
+      s::cout << "Actor Loss: " << actor_loss_dev.item().to<float>() << s::endl;
+      s::cout << "Critic Loss: " << critic_loss_dev.item().to<float>() << s::endl;
       s::cout << "Loss: " << loss_dev.item().to<float>() << s::endl;
       losses.push_back(loss_dev.item().to<float>());
     }
