@@ -94,8 +94,10 @@ void double_qlearning2(
         loss_dev.backward();
         rlm.optimizer.step();
 
-        if ((i + step_count) % loss_sampling_interval == 0)
+        if ((i + step_count) % loss_sampling_interval == 0){
+          s::cout << "loss: " << loss_dev.item().to<float>() << s::endl;
           losses.push_back(loss_dev.item().to<float>());
+        }
       }
 
       step_count++;

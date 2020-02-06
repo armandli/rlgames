@@ -469,6 +469,35 @@ void test_slice(){
   s::cout << r << s::endl;
 }
 
+void test_slice2(){
+  float src_data[] = {
+    1,2,3,4,
+    5,6,7,8,
+    9,10,11,12,
+    13,14,15,16,
+
+    17,18,19,20,
+    21,22,23,24,
+    25,26,27,28,
+    29,30,31,32,
+
+    33,34,35,36,
+    37,38,39,40,
+    41,42,43,44,
+    45,46,47,48,
+
+    49,50,51,52,
+    53,54,55,56,
+    57,58,59,60,
+    61,62,63,64,
+  };
+  t::Tensor src1 = t::from_blob(src_data, {4, 2, 2, 2});
+  t::Tensor r = src1.slice(0, 1, 3);
+
+  s::cout << "slicing 2" << s::endl;
+  s::cout << r << s::endl;
+}
+
 //testing batch selection for experience replay buffer
 void test_gather4(){
   float src_data[] = {
@@ -511,6 +540,20 @@ void test_scatter1(){
   s::cout << r << s::endl;
 }
 
+//testing if values in a vector >= 0 for PPO
+void test_vector_compare1(){
+  float src_dev[] = {
+    10., -10., 0.1, -0.1, 0.2, -0.2,
+  };
+  t::Tensor src = t::from_blob(src_dev, {6});
+  t::Tensor r1 = src >= 0.0;
+  t::Tensor r2 = r1.logical_not();
+
+  s::cout << "Tensor compare:" << s::endl;
+  s::cout << r1 << s::endl;
+  s::cout << r2 << s::endl;
+}
+
 int main(){
   test_softmax();
   test_index_select();
@@ -533,7 +576,9 @@ int main(){
   test_logical_not2();
   test_from_blob_selection();
   test_slice();
+  test_slice2();
   test_gather4();
   test_cat2();
   test_scatter1();
+  test_vector_compare1();
 }

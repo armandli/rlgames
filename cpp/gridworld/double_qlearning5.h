@@ -1,5 +1,5 @@
-#ifndef GRIDWORLD_DOUBLE_QLEARNING4
-#define GRIDWORLD_DOUBLE_QLEARNING4
+#ifndef GRIDWORLD_DOUBLE_QLEARNING5
+#define GRIDWORLD_DOUBLE_QLEARNING5
 
 #include <learning_util.h>
 #include <learning_debug.h>
@@ -17,24 +17,26 @@
 
 namespace gridworld_pt {
 
+//NOTE: this is a baseline test, this is not more advanced than double_qlearning4
+
 namespace s = std;
 namespace t = torch;
 
-//Double Q Learning with Curiosity Driven Exploration
+//Double Q learning with convolutional states, no curiosity driven
+//exploration
 //Optimization 1: Q function returns Q value for all actions of the same
 //state
 //Optimization 2: Use a separate target network for stabilization
 //Optimization 3: Use experience replay buffer, improved
 //Optimization 4: Use current network for action selection, target network
 //for action value
-//Optimization 5: use curiosity driven exploration
 
 template <typename ENV, typename RLM, typename INS, typename ACTION, uint loss_sampling_interval = 100>
-void double_qlearning4(
+void double_qlearning5(
   ENV& env,
   RLM& rlm,
   t::Device device,
-  qlearning_metaparams<simple_icm_metaparams, experience_replay_metaparams>& mp,
+  qlearning_metaparams<epsilon_greedy_metaparams, experience_replay_metaparams>& mp,
   s::vector<float>& losses,
   uint64 random_seed){
 
@@ -91,37 +93,18 @@ void double_qlearning4(
         nqselect_dev = t::argmax(nqselect_dev, 1);
         nqval_dev = t::index_select(nqval_dev, 1, nqselect_dev).diagonal();
         t::Tensor reward = t::from_blob(actions_rewards.rewards.data(), {mp.erb.batchsize});
-        t::Tensor extrinsic_reward_dev = reward.to(device);
+        t::Tensor reward_dev = reward.to(device);
         t::Tensor terminal = t::from_blob(actions_rewards.is_terminals.data(), {mp.erb.batchsize}, t::kLong);
         t::Tensor terminal_dev = terminal.to(device).logical_not();
+        t::Tensor target_dev = reward_dev + mp.gamma * terminal_dev * nqval_dev;
 
-        //ICM loss
-        //one-hot-encode action vector
-        t::Tensor ones_dev = t::ones({mp.erb.batchsize, 1}, device);
-        action_dev = action_dev.reshape({mp.erb.batchsize, 1});
-        t::Tensor action_onehot_dev = t::zeros({mp.erb.batchsize, rlm.action_encoder.action_size()}, device).scatter_(1, action_dev, ones_dev);
-        t::Tensor target_nstate_dev = rlm.model->featurize_state(batch.nstates_tensor());
-        t::Tensor fnstate_dev = rlm.model->icm_forward_dynamics(batch.states_tensor(), action_onehot_dev);
-        t::Tensor iaction_dev = rlm.model->icm_inverse_dynamics(batch.states_tensor(), batch.nstates_tensor());
-
-        // target value = extrinsic reward + intrinsic reward
-        t::Tensor intrinsic_reward = mp.exp.eta * t::sum(t::pow(target_nstate_dev - fnstate_dev, 2), -1);
-        t::Tensor target_dev = intrinsic_reward + extrinsic_reward_dev + mp.gamma * terminal_dev * nqval_dev;
-
-        //total loss
-        t::Tensor intrinsic_loss = mp.exp.beta * t::mse_loss(fnstate_dev, target_nstate_dev.detach());
-        t::Tensor id_loss        = (1.F - mp.exp.beta) * t::mean(t::sum(-1.F * action_onehot_dev.detach() * t::log(iaction_dev), -1));
-        t::Tensor extrinsic_loss = t::mse_loss(oqval_dev, target_dev.detach());
-        t::Tensor loss_dev       = extrinsic_loss + intrinsic_loss + id_loss;
+        t::Tensor loss_dev = t::mse_loss(oqval_dev, target_dev.detach());
 
         loss_dev.backward();
         rlm.optimizer.step();
 
         if ((i + step_count) % loss_sampling_interval == 0){
-          s::cout << "extrinsic loss: " << extrinsic_loss.item().to<float>() << s::endl;
-          s::cout << "Intrinsic loss: "<< t::mean(intrinsic_loss).item().to<float>() << s::endl;
-          s::cout << "Inverse Dynamics loss: " << id_loss.item().to<float>() << s::endl;
-
+          s::cout << "loss: " << loss_dev.item().to<float>() << s::endl;
           losses.push_back(loss_dev.item().to<float>());
         }
       }
@@ -132,8 +115,8 @@ void double_qlearning4(
 
     if (replay_buffer.is_filled()){
       //epsilon decay
-      if (mp.exp.epsilon > 0.04)
-        mp.exp.epsilon -= 1. / s::pow((double)mp.epochs, 0.9);
+      if (mp.exp.epsilon > 0.1)
+        mp.exp.epsilon -= 1. / s::pow((double)mp.epochs, 0.7);
 
       if (i % 10 == 0)
         s::cout << "epsilon: " << mp.exp.epsilon << s::endl;
@@ -141,6 +124,7 @@ void double_qlearning4(
   }
 }
 
+
 } // gridworld_pt
 
-#endif//GRIDWORLD_DOUBLE_QLEARNING4
+#endif//GRIDWORLD_DOUBLE_QLEARNING5

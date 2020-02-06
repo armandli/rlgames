@@ -12,7 +12,8 @@ struct epsilon_greedy_metaparams {
 
 //intrinsic curiosity module
 struct simple_icm_metaparams {
-  float beta;     //scaling factor for the intrinsic curiosity reward
+  float beta;     //intrinsic curiosity loss scaling
+  float eta;      //scaling factor for the intrinsic curiosity reward
   double epsilon; //for q-learning, we still need epsilon greedy
 };
 
@@ -64,12 +65,15 @@ struct ac_metaparams {
   uint   tc_steps;
 };
 
+template <typename EParams>
 struct ppo_metaparams {
-  uint64 epochs;
-  uint64 batchsize;
-  double gamma;
-  double epsilon;
-  uint   max_steps;
+  uint64  epochs;
+  uint64  batchsize;
+  double  gamma;
+  double  epsilon;
+  uint    tc_steps;
+  uint    max_steps;
+  EParams exp;
 };
 
 } // gridworld_pt
