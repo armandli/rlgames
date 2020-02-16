@@ -1,5 +1,7 @@
 #include <rapidjson/document.h>
 #include <rapidjson/istreamwrapper.h>
+#include <rapidjson/ostreamwrapper.h>
+#include <rapidjson/writer.h>
 
 #include <string>
 #include <iostream>
@@ -37,12 +39,32 @@ void test_read_config(const s::string& filename){
   }
 }
 
+void test_write_config(const s::string& filename){
+  j::Document doc;
+  doc.SetObject();
+  j::Document::AllocatorType& allocator = doc.GetAllocator();
+
+  j::Value key("some_key");
+  j::Value value(j::kArrayType);
+  for (int i = 0; i < 10; ++i)
+    value.PushBack(j::Value().SetFloat(i * 10.F), allocator);
+  doc.AddMember(key, value, allocator);
+
+  s::ofstream ofs(filename);
+  j::OStreamWrapper osw(ofs);
+  j::Writer<j::OStreamWrapper> writer(osw);
+  doc.Accept(writer);
+}
+
 int main(int argc, char* argv[]){
-  if (argc != 2){
-    s::cout << "Usage: " << argv[0] << " <filename>" << s::endl;
+  if (argc != 3){
+    s::cout << "Usage: " << argv[0] << " <input filename> <output filename>" << s::endl;
     return 1;
   }
 
-  s::string filename = argv[1];
-  test_read_config(filename);
+  s::string input_filename = argv[1];
+  test_read_config(input_filename);
+
+  s::string output_filename = argv[2];
+  test_write_config(output_filename);
 }

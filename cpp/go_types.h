@@ -284,6 +284,19 @@ s::ostream& operator<<(s::ostream& out, const GoBoard<SZ>& board){
   return board.print(out);
 }
 
+template <ubyte SZ>
+constexpr float default_komi(){
+  if      constexpr(SZ < 5)              return 0.F;
+  else if constexpr(SZ >= 5 &&  SZ < 7)  return 0.5F;
+  else if constexpr(SZ >= 7 &&  SZ < 10) return 1.5F;
+  else if constexpr(SZ >= 10 && SZ < 13) return 2.5F;
+  else if constexpr(SZ >= 13 && SZ < 14) return 3.5F;
+  else if constexpr(SZ >= 14 && SZ < 16) return 4.5F;
+  else if constexpr(SZ >= 16 && SZ < 17) return 5.5F;
+  else if constexpr(SZ >= 17 && SZ < 19) return 6.5F;
+  else                                   return 7.5F;
+}
+
 // scoring using area rule: player pieces on board + territory + komi
 template <ubyte SZ>
 struct GoAreaScore {
@@ -474,7 +487,7 @@ public:
   Player winner(){
     if (not is_over()) return Player::Unknown;
     if (mPMove.mty == M::Resign) return mNPlayer;
-    GoAreaScore<SZ> scorer(mBoard);
+    GoAreaScore<SZ> scorer(mBoard, default_komi<SZ>());
     return scorer.winner();
   }
   GoGameState& apply_move(Move move){

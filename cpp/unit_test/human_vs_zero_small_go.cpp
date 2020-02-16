@@ -117,9 +117,9 @@ int main(int argc, const char* argv[]){
   R::ZeroAgent<decltype(model_container), R::dirichlet_distribution<action_size>, R::Splitmix, R::GoBoard<SZ>, R::GoGameState<SZ>, action_size> agent(
     model_container,
     device,
-    1600,   /*max expansion*/
-    0.2,    /*exploration factor*/
-    0.3,    /*dirichlet distribution alpha*/
+    3200,   /*max expansion*/
+    0.0,    /*exploration factor*/
+    1000.,  /*dirichlet distribution alpha*/
     rand()  /*random seed*/
   );
 

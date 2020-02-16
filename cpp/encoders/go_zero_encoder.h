@@ -22,7 +22,8 @@ namespace t = torch;
 // Plane 0-3 are our stones with 1,2,3,4+ liberties
 // Plane 4-7 are their stones with 1,2,3,4+ liberties
 // Plane 8 are illegal moves due to ko
-// Additional 2 dim out-of-plane information on if player get komi (1 if yes) and if opponent gets komi
+// Additional 2 dim out-of-plane information on if player get komi (1 if yes) and if opponent gets komi,
+// maybe this is better with the actual komi value
 
 template <ubyte SZ>
 class ZeroGoStateEncoder : public StateEncoderBase<GoGameState<SZ>, TensorP, ZeroGoStateEncoder<SZ>> {
@@ -64,13 +65,13 @@ public:
         if (gs.does_move_violate_ko(Move(M::Play, pt)))
           mBoard[idx + IZ * 8] = 1.f;
       }
-    //TODO: instead of using 1.0F, use the actual komi value
+    // use default komi instead of 1.0F
     if (nplayer == Player::White){
-      mState[0] = 1.f;
+      mState[0] = default_komi<SZ>();
       mState[1] = 0.f;
     } else {
       mState[0] = 0.f;
-      mState[1] = 1.f;
+      mState[1] = default_komi<SZ>();
     }
 
     t::Tensor tboard = t::from_blob(mBoard, {9, (sint)SZ, (sint)SZ});

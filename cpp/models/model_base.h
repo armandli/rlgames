@@ -14,6 +14,8 @@
 
 #include <rapidjson/document.h>
 #include <rapidjson/istreamwrapper.h>
+#include <rapidjson/ostreamwrapper.h>
+#include <rapidjson/writer.h>
 
 #include <torch/torch.h>
 
@@ -85,9 +87,8 @@ void load_model(Model& model, const s::string& model_file, const s::string& opti
   t::load(model.optimizer, optimizer_file);
 }
 
-//TODO: is there anyway we can record and monitor the loss ?
 template <typename Model>
-void train(Model& model, ZeroExperience& exp){
+float train(Model& model, ZeroExperience& exp){
   model.model->zero_grad();
 
   t::Tensor visit_sums = t::sum(exp.visit_counts, -1);
@@ -101,6 +102,37 @@ void train(Model& model, ZeroExperience& exp){
 
   loss.backward();
   model.optimizer.step();
+
+  return loss.item().to<float>();
+}
+
+void save_training_result(const s::string& filename, const s::vector<float>& losses, uint64 a1win, uint64 a2win, uint64 ties){
+  j::Document doc;
+  doc.SetObject();
+  j::Document::AllocatorType& allocator = doc.GetAllocator();
+
+  j::Value a1win_key("player1_wins");
+  j::Value a1win_value(a1win);
+  doc.AddMember(a1win_key, a1win_value, allocator);
+
+  j::Value a2win_key("player2_wins");
+  j::Value a2win_value(a2win);
+  doc.AddMember(a2win_key, a2win_value, allocator);
+
+  j::Value tie_key("ties");
+  j::Value tie_value(ties);
+  doc.AddMember(tie_key, tie_value, allocator);
+
+  j::Value loss_key("losses");
+  j::Value loss_values(j::kArrayType);
+  for (uint i = 0; i < losses.size(); ++i)
+    loss_values.PushBack(j::Value().SetFloat(losses[i]), allocator);
+  doc.AddMember(loss_key, loss_values, allocator);
+
+  s::ofstream ofs(filename);
+  j::OStreamWrapper osw(ofs);
+  j::Writer<j::OStreamWrapper> writer(osw);
+  doc.Accept(writer);
 }
 
 } // rlgames

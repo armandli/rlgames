@@ -5,6 +5,7 @@
 #include <string>
 #include <random>
 #include <chrono>
+#include <vector>
 #include <iostream>
 #include <filesystem>
 
@@ -36,9 +37,10 @@ int main(int argc, const char* argv[]){
   s::string model_config_file;
   s::string model_file;
   s::string optimizer_file;
+  s::string result_file;
 
-  if (argc != 5){
-    s::cout << "Usage: zero_small_selfplay <episodes> <batchsize> <model_config> <model_file> <optimizer_file>" << s::endl;
+  if (argc != 6){
+    s::cout << "Usage: zero_small_selfplay <episodes> <batchsize> <model_config> <model_file> <optimizer_file> <result_file>" << s::endl;
     s::exit(1);
   }
 
@@ -47,6 +49,7 @@ int main(int argc, const char* argv[]){
   model_config_file = argv[3];
   model_file = argv[4];
   optimizer_file = argv[5];
+  result_file = argv[6];
 
   if (not s::filesystem::exists(model_config_file)){
     s::cout << "model configuration file does not exist" << s::endl;
@@ -99,6 +102,9 @@ int main(int argc, const char* argv[]){
     rand()  /*random seed*/
   );
 
+  s::vector<float> losses;
+  uint64 a1_wins = 0, a2_wins = 0, tie_count = 0;
+
   for (uint i = 0; i < episodes; ++i){
     R::ZeroEpisodicExpBuffer buffer1(max_bsize, state_size, action_size, device);
     R::ZeroEpisodicExpBuffer buffer2(max_bsize, state_size, action_size, device);
@@ -126,24 +132,27 @@ int main(int argc, const char* argv[]){
       case R::Player::Black:
         buffer1.complete_episode(decltype(agent1)::MAX_SCORE);
         buffer2.complete_episode(decltype(agent2)::MIN_SCORE);
+        a1_wins += 1;
         break;
       case R::Player::White:
         buffer1.complete_episode(decltype(agent1)::MIN_SCORE);
         buffer2.complete_episode(decltype(agent2)::MAX_SCORE);
+        a2_wins += 1;
         break;
       case R::Player::Unknown:
         buffer1.complete_episode(decltype(agent1)::TIE_SCORE);
         buffer2.complete_episode(decltype(agent2)::TIE_SCORE);
+        tie_count += 1;
         break;
       default: assert(false);
       }
 
       R::append_experiences(experience, buffer1, buffer2);
     }
-    train(model_container, experience);
+    losses.push_back(train(model_container, experience));
   }
 
-  save_model(model_container, model_file, optimizer_file);
+  R::save_model(model_container, model_file, optimizer_file);
 
-  //TODO: report loss, and other training statistics
+  R::save_training_result(result_file, losses, a1_wins, a2_wins, tie_count);
 }
