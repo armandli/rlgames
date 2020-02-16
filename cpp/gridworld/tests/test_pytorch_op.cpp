@@ -554,6 +554,20 @@ void test_vector_compare1(){
   s::cout << r2 << s::endl;
 }
 
+//testing the raw access data_ptr is good
+void test_data_ptr(){
+  float src_dev[] = {
+    10., -10., 0.1, -0.1, 0.2, -0.2,
+  };
+  t::Tensor src = t::from_blob(src_dev, {6});
+  float* data = (float*)src.data_ptr();
+  s::cout << "test data_ptr" << s::endl;
+  for (uint i = 0; i < 6; ++i){
+    s::cout << data[i] << " ";
+  }
+  s::cout << s::endl;
+}
+
 int main(){
   test_softmax();
   test_index_select();
@@ -581,4 +595,5 @@ int main(){
   test_cat2();
   test_scatter1();
   test_vector_compare1();
+  test_data_ptr();
 }
