@@ -25,7 +25,12 @@ struct ZeroExperience {
 
   ZeroExperience(t::Tensor b, t::Tensor s, t::Tensor vc, t::Tensor r):
     boards(b), states(s), visit_counts(vc), rewards(r) {}
-  ZeroExperience(): boards(t::zeros({0})), states(t::zeros({0})), visit_counts(t::zeros({0})), rewards(t::zeros({0})) {}
+  explicit ZeroExperience(t::Device device):
+    boards(t::zeros({0}, device)),
+    states(t::zeros({0}, device)),
+    visit_counts(t::zeros({0}, device)),
+    rewards(t::zeros({0}, device))
+  {}
 
   void export_experience(const s::string& boards_file, const s::string& states_file, s::string& vcount_file, s::string& rewards_file){
     t::save(boards, boards_file);
