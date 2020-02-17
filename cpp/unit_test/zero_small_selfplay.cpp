@@ -39,7 +39,7 @@ int main(int argc, const char* argv[]){
   s::string optimizer_file;
   s::string result_file;
 
-  if (argc != 6){
+  if (argc != 7){
     s::cout << "Usage: zero_small_selfplay <episodes> <batchsize> <model_config> <model_file> <optimizer_file> <result_file>" << s::endl;
     s::exit(1);
   }
@@ -106,8 +106,8 @@ int main(int argc, const char* argv[]){
   uint64 a1_wins = 0, a2_wins = 0, tie_count = 0;
 
   for (uint i = 0; i < episodes; ++i){
-    R::ZeroEpisodicExpBuffer buffer1(max_bsize, state_size, action_size, device);
-    R::ZeroEpisodicExpBuffer buffer2(max_bsize, state_size, action_size, device);
+    R::ZeroEpisodicExpCollector buffer1(max_bsize, state_size, action_size, device);
+    R::ZeroEpisodicExpCollector buffer2(max_bsize, state_size, action_size, device);
     agent1.set_exp(buffer1);
     agent2.set_exp(buffer2);
 

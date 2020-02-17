@@ -46,7 +46,7 @@ public:
   Move idx_to_move(uint idx) const {
     assert(idx <= SZ * SZ);
 
-    if (idx == SZ * SZ) return Move(M::Pass);
+    if (idx >= SZ * SZ) return Move(M::Pass);
     else                return Move(M::Play, point<SZ>(idx));
   }
   static constexpr uint action_size(){

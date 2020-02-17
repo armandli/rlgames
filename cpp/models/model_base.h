@@ -67,8 +67,8 @@ struct ModelContainer {
   AE      action_encoder;
   Optim   optimizer;
 
-  ModelContainer(NNModel&& m, SE&& se, AE&& ae, float learning_rate):
-    model(s::move(m)),
+  ModelContainer(NNModel m, SE&& se, AE&& ae, float learning_rate):
+    model(m),
     state_encoder(s::move(se)),
     action_encoder(s::move(ae)),
     optimizer(m->parameters(), t::optim::AdamOptions(learning_rate))
@@ -89,13 +89,12 @@ void load_model(Model& model, const s::string& model_file, const s::string& opti
 
 template <typename Model>
 float train(Model& model, ZeroExperience& exp){
+  t::Tensor visit_sums = t::sum(exp.visit_counts, -1).reshape({exp.visit_counts.size(0), 1});
+  t::Tensor visit_counts = t::div(exp.visit_counts, visit_sums);
+
   model.model->zero_grad();
 
-  t::Tensor visit_sums = t::sum(exp.visit_counts, -1);
-  t::Tensor visit_counts = exp.visit_counts / visit_sums;
-
   TensorP avout = model.model->forward(TensorP(exp.boards, exp.states));
-
   t::Tensor policy_loss = t::mean(-1.F * visit_counts.detach() * t::log(avout.x));
   t::Tensor value_loss = t::mse_loss(avout.y, exp.rewards.detach());
   t::Tensor loss = policy_loss + value_loss;

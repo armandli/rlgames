@@ -25,7 +25,7 @@ struct ZeroExperience {
 
   ZeroExperience(t::Tensor b, t::Tensor s, t::Tensor vc, t::Tensor r):
     boards(b), states(s), visit_counts(vc), rewards(r) {}
-  ZeroExperience() = default;
+  ZeroExperience(): boards(t::zeros({0})), states(t::zeros({0})), visit_counts(t::zeros({0})), rewards(t::zeros({0})) {}
 
   void export_experience(const s::string& boards_file, const s::string& states_file, s::string& vcount_file, s::string& rewards_file){
     t::save(boards, boards_file);
@@ -35,8 +35,7 @@ struct ZeroExperience {
   }
 };
 
-//TODO: rename this experience collector
-class ZeroEpisodicExpBuffer {
+class ZeroEpisodicExpCollector {
   t::Tensor        mBoards;
   t::Tensor        mStates;
   s::vector<float> mVisitCounts;
@@ -46,7 +45,7 @@ class ZeroEpisodicExpBuffer {
   uint             mStepCount;
   uint             mActionSize;
 public:
-  ZeroEpisodicExpBuffer(uint max_size, const TensorDimP& state_size, uint action_size, t::Device device):
+  ZeroEpisodicExpCollector(uint max_size, const TensorDimP& state_size, uint action_size, t::Device device):
     mBoards(t::zeros({max_size, state_size.x.i, state_size.x.j, state_size.x.k}, device)),
     mStates(t::zeros({max_size, state_size.y.i}, device)),
     mRewards(max_size),
@@ -57,20 +56,20 @@ public:
     mVisitCounts.reserve(max_size * action_size);
   }
   bool append(TensorP st, const s::vector<float>& visit_counts){
-    if (mOffset >= mRewards.size())
+    if (mOffset + mStepCount >= mRewards.size())
       return false;
 
-    mBoards[mOffset] = st.x;
-    mStates[mOffset] = st.y;
+    mBoards[mOffset + mStepCount] = st.x;
+    mStates[mOffset + mStepCount] = st.y;
     s::copy(s::begin(visit_counts), s::end(visit_counts), s::back_inserter(mVisitCounts));
 
-    mOffset++;
     mStepCount++;
     return true;
   }
   void complete_episode(float reward){
     s::fill(s::begin(mRewards) + mOffset, s::begin(mRewards) + mOffset + mStepCount, reward);
 
+    mOffset += mStepCount;
     mStepCount = 0;
   }
 
@@ -95,11 +94,13 @@ public:
       return r.to(mDevice);
   }
   ZeroExperience experience(){
+    assert(mVisitCounts.size() == mOffset * mActionSize);
+
     return ZeroExperience(boards(), states(), visit_counts(), rewards());
   }
 };
 
-void append_experiences(ZeroExperience& out, ZeroEpisodicExpBuffer& collector){
+void append_experiences(ZeroExperience& out, ZeroEpisodicExpCollector& collector){
   ZeroExperience nexp = collector.experience();
   out.boards = t::cat({out.boards, nexp.boards}, 0);
   out.states = t::cat({out.states, nexp.states}, 0);
@@ -107,7 +108,7 @@ void append_experiences(ZeroExperience& out, ZeroEpisodicExpBuffer& collector){
   out.rewards = t::cat({out.rewards, nexp.rewards}, 0);
 }
 
-void append_experiences(ZeroExperience& out, ZeroEpisodicExpBuffer& c1, ZeroEpisodicExpBuffer& c2){
+void append_experiences(ZeroExperience& out, ZeroEpisodicExpCollector& c1, ZeroEpisodicExpCollector& c2){
   ZeroExperience nexp1 = c1.experience();
   ZeroExperience nexp2 = c2.experience();
   out.boards = t::cat({out.boards, nexp1.boards, nexp2.boards}, 0);

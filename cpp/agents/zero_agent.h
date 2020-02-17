@@ -27,13 +27,13 @@ public:
   static constexpr float MAX_SCORE =  1.F;
   static constexpr float TIE_SCORE =  0.F;
 private:
-  Model&                 mModel;
-  NoiseDist              mNoise;
-  t::Device              mDevice;
-  RGen                   mGen;
-  ZeroEpisodicExpBuffer* mExp;
-  uint                   mMaxExpand;
-  float                  mEFactor;
+  Model&                    mModel;
+  NoiseDist                 mNoise;
+  t::Device                 mDevice;
+  RGen                      mGen;
+  ZeroEpisodicExpCollector* mExp;
+  uint                      mMaxExpand;
+  float                     mEFactor;
 protected:
   struct Node;
 
@@ -68,15 +68,23 @@ protected:
       for (uint i = 0; i < BF; ++i)
         branches[i].prior = priors[i];
     }
+    Node& operator=(Node&& o){
+      gs = s::move(o.gs);
+      qvalue = o.qvalue;
+      total_count = o.total_count;
+      s::memcpy(branches, o.branches, sizeof(Branch) * BF);
+      parent = o.parent;
+      last_midx = o.last_midx;
+      return *this;
+    }
     Node() = default;
 
     void add_child(uint midx, Node* child_node){
       branches[midx].child = child_node;
     }
     bool has_child(uint midx){
-      if (midx >= BF)
-        return false;
-      return branches[midx].child != nullptr;
+      if (midx >= BF) return false;
+      else            return branches[midx].child != nullptr;
     }
     Node* child(uint midx){
       return branches[midx].child;
@@ -93,7 +101,7 @@ protected:
       return branches[midx].visit_count;
     }
     void record_visit(uint midx, float value){
-      total_count += value;
+      total_count += 1;
       branches[midx].visit_count += 1;
       branches[midx].total_value += value;
     }
@@ -104,9 +112,7 @@ protected:
     size_t index;
     s::vector<T> objects;
 
-    explicit BufferAllocator(size_t sz): index(0U) {
-      objects.resize(sz);
-    }
+    explicit BufferAllocator(size_t sz): index(0U), objects(sz){}
 
     T* allocate(T&& obj) noexcept {
       assert(index < objects.size());
@@ -130,14 +136,15 @@ protected:
     return new_node;
   }
 
-  uint select_branch(Node* node, uint prev_idx){
-    if (node == nullptr)    return prev_idx;
+  uint select_branch(Node* node){
+    assert(node != nullptr);
     if (node->gs.is_over()) return BF;
 
     s::vector<Move> moves = node->gs.legal_moves();
     s::array<float, BF> noise = mNoise(mGen);
     float tcount = node->total_count;
-    s::array<float, BF> score = {MIN_SCORE}; //initialize all scores to be MIN_SCORE
+    s::array<float, BF> score;
+    s::fill(s::begin(score), s::end(score), MIN_SCORE);
     for (uint i = 0; i < moves.size(); ++i){
       uint idx = mModel.action_encoder.move_to_idx(moves[i]);
       float q = node->expected_value(idx);
@@ -145,7 +152,9 @@ protected:
       float n = node->visit_count(idx);
       score[idx] = q + (mEFactor + noise[idx]) * p * (s::sqrt(tcount) / (n + 1));
     }
-    return s::max_element(s::begin(score), s::end(score)) - s::begin(score);
+
+    uint max_idx = s::max_element(s::begin(score), s::end(score)) - s::begin(score);
+    return max_idx;
   }
 
   void append_experience(Node& root){
@@ -177,29 +186,26 @@ public:
     Node* root = create_node(arena, s::move(gs_copy));
     for (uint r = 0; r < mMaxExpand; ++r){
       Node* node = root;
-      Node* pnode = root;
-      uint next_midx = select_branch(node, BF);
-      float value;
+      uint next_midx = select_branch(node);
       while (node->has_child(next_midx)){
-        pnode = node;
-        node = node->child(next_midx);              //node can be nullptr
-        next_midx = select_branch(node, next_midx); //terminal state has no next_midx
+        node = node->child(next_midx);   //node can be nullptr
+        next_midx = select_branch(node); //terminal state has no next_midx
       }
-      if (node == nullptr){
-        //we have not expanded this node
-        GameState new_gs = pnode->gs;
-        Move move = mModel.action_encoder.idx_to_move(next_midx);
-        new_gs.apply_move(move);
-        Node* new_node = create_node(arena, s::move(new_gs), pnode, next_midx);
-        value = -1.F * new_node->qvalue;
-      } else {
+      float value;
+      if (next_midx >= BF){
         //we reached terminal state, update visit count, we cannot choose
         //to explore other nodes because visit count indicate best choice
         value = -1.F * node->qvalue;
         next_midx = node->last_midx;
+      } else {
+        //we have not expanded this node
+        GameState new_gs = node->gs;
+        Move move = mModel.action_encoder.idx_to_move(next_midx);
+        new_gs.apply_move(move);
+        Node* new_node = create_node(arena, s::move(new_gs), node, next_midx);
+        value = -1.F * new_node->qvalue;
       }
       // backup the tree to update visit counts
-      node = pnode;
       while (node != nullptr){
         node->record_visit(next_midx, value);
         next_midx = node->last_midx;
@@ -212,11 +218,11 @@ public:
     //count
     append_experience(*root);
 
-    int max_midx = s::max_element(s::begin(root->branches), s::end(root->branches), [](Branch& a, Branch& b){ return a.visit_count > b.visit_count; }) - s::begin(root->branches);
+    int max_midx = s::max_element(s::begin(root->branches), s::end(root->branches), [](Branch& a, Branch& b){ return a.visit_count < b.visit_count; }) - s::begin(root->branches);
     return mModel.action_encoder.idx_to_move(max_midx);
   }
 
-  void set_exp(ZeroEpisodicExpBuffer& exp){
+  void set_exp(ZeroEpisodicExpCollector& exp){
     mExp = &exp;
   }
 };

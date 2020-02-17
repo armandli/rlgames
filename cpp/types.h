@@ -111,7 +111,7 @@ char index_to_char(ubyte index){
 
 s::ostream& operator<<(s::ostream& out, Move m){
   switch (m.mty){
-  case M::Play:   out << index_to_char(m.mpt.c) << (int)m.mpt.r; break;
+  case M::Play:   out << index_to_char(m.mpt.c) << (int)(m.mpt.r + 1); break;
   case M::Pass:   out << "pass"; break;
   case M::Resign: out << "resigns"; break;
   case M::Unknown:

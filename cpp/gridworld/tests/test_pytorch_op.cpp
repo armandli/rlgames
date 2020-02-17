@@ -568,6 +568,32 @@ void test_data_ptr(){
   s::cout << s::endl;
 }
 
+void test_cat_empty_tensor(){
+  t::Tensor a = t::zeros({0}); //must assign it with zeros, otherwise it will fail
+
+  float src_dev[] = {
+    10., -10., 0.1, -0.1, 0.2, -0.2,
+  };
+  t::Tensor src = t::from_blob(src_dev, {6});
+
+  t::Tensor b = t::cat({a, src}, 0);
+
+  s::cout << "test cat empty tensor" << s::endl;
+  s::cout << b << s::endl;
+}
+
+void test_div(){
+  float src1_dev[] = {
+    10., 20., 0.1, 0.1, 0.2, 0.4,
+  };
+  t::Tensor src = t::from_blob(src1_dev, {3,2});
+  t::Tensor denom = t::sum(src, -1).reshape({3, 1});
+  t::Tensor r = t::div(src, denom);
+
+  s::cout << "test divide" << s::endl;
+  s::cout << r << s::endl;
+}
+
 int main(){
   test_softmax();
   test_index_select();
@@ -596,4 +622,6 @@ int main(){
   test_scatter1();
   test_vector_compare1();
   test_data_ptr();
+  test_cat_empty_tensor();
+  test_div();
 }

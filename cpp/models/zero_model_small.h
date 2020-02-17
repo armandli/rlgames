@@ -54,10 +54,15 @@ class ZeroModelSmallImpl : public t::nn::Module {
   t::nn::Linear pl1, vl1;
   TensorDimP state_size;
 
+  t::Tensor featurize_state(t::Tensor state){
+    if (state.dim() == 1)
+      state = state.reshape({1, state_size.y.i});
+    return state;
+  }
+
   t::Tensor featurize_board(t::Tensor board){
     if (board.dim() == 3)
       board = board.reshape({1, state_size.x.i, state_size.x.j, state_size.x.k});
-
     board = t::relu(bc1(board));
     board = t::relu(bc2(board));
     board = t::relu(bc3(board));
@@ -77,7 +82,7 @@ public:
     bc1(register_module("bc1", t::nn::Conv2d(t::nn::Conv2dOptions(ssz.x.i, bc1sz.i, bc1sz.j)))),
     bc2(register_module("bc2", t::nn::Conv2d(t::nn::Conv2dOptions(bc1sz.i, bc2sz.i, bc2sz.j)))),
     bc3(register_module("bc3", t::nn::Conv2d(t::nn::Conv2dOptions(bc2sz.i, bc3sz.i, bc3sz.j)))),
-    bc4(register_module("bc4", t::nn::Conv2d(t::nn::Conv2dOptions(bc3sz.i, bc4sz.j, bc4sz.j)))),
+    bc4(register_module("bc4", t::nn::Conv2d(t::nn::Conv2dOptions(bc3sz.i, bc4sz.i, bc4sz.j)))),
     pc1(register_module("pc1", t::nn::Conv2d(t::nn::Conv2dOptions(bc4sz.i, pcsz.i, pcsz.j)))),
     vc1(register_module("vc1", t::nn::Conv2d(t::nn::Conv2dOptions(bc4sz.i, vcsz.j, vcsz.j)))),
     pl1(register_module("pl1",
@@ -98,9 +103,9 @@ public:
     bc1(register_module("bc1", t::nn::Conv2d(t::nn::Conv2dOptions(ssz.x.i, opt.bc1sz.i, opt.bc1sz.j)))),
     bc2(register_module("bc2", t::nn::Conv2d(t::nn::Conv2dOptions(opt.bc1sz.i, opt.bc2sz.i, opt.bc2sz.j)))),
     bc3(register_module("bc3", t::nn::Conv2d(t::nn::Conv2dOptions(opt.bc2sz.i, opt.bc3sz.i, opt.bc3sz.j)))),
-    bc4(register_module("bc4", t::nn::Conv2d(t::nn::Conv2dOptions(opt.bc3sz.i, opt.bc4sz.j, opt.bc4sz.j)))),
+    bc4(register_module("bc4", t::nn::Conv2d(t::nn::Conv2dOptions(opt.bc3sz.i, opt.bc4sz.i, opt.bc4sz.j)))),
     pc1(register_module("pc1", t::nn::Conv2d(t::nn::Conv2dOptions(opt.bc4sz.i, opt.pcsz.i, opt.pcsz.j)))),
-    vc1(register_module("vc1", t::nn::Conv2d(t::nn::Conv2dOptions(opt.bc4sz.i, opt.vcsz.j, opt.vcsz.j)))),
+    vc1(register_module("vc1", t::nn::Conv2d(t::nn::Conv2dOptions(opt.bc4sz.i, opt.vcsz.i, opt.vcsz.j)))),
     pl1(register_module("pl1",
       t::nn::Linear(
         (ssz.x.j - opt.bc1sz.j - opt.bc2sz.j - opt.bc3sz.j - opt.bc4sz.j - opt.pcsz.j + 5) *
@@ -117,6 +122,7 @@ public:
   {}
   TensorP forward(TensorP state){
     state.x = featurize_board(state.x);
+    state.y = featurize_state(state.y);
     t::Tensor q = t::relu(pc1(state.x));
     q = t::softmax(pl1(t::cat({q.flatten(1, -1), state.y}, -1)), -1);
     t::Tensor v = t::relu(vc1(state.x));

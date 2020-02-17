@@ -229,15 +229,16 @@ public:
     //happened for rule checking
   }
 
-  //TODO: horizontal index should avoid the letter I
   s::ostream& print(s::ostream& out) const {
     char bchar = 'X';
     char wchar = '0';
 
     out << "   ";
     if (SZ > 9) out << " ";
-    for (char c = 'A', i = 0; i < SZ; c++, i++)
+    for (char c = 'A', i = 0; i < SZ; c++, i++){
+      if (c == 'I') c++;
       out << c << ' ';
+    }
     out << '\n';
     for (ubyte i = SZ - 1; i < SZ; --i){
       if (i < 10) out << ' ';
@@ -257,8 +258,10 @@ public:
     }
     out << "   ";
     if (SZ > 9) out << " ";
-    for (char c = 'A', i = 0; i < SZ; c++, i++)
+    for (char c = 'A', i = 0; i < SZ; c++, i++){
+      if (c == 'I') c++;
       out << c << ' ';
+    }
     out << '\n';
     return out;
   }
@@ -434,9 +437,16 @@ public:
     mNPlayer = o.mNPlayer;
     mPMove = o.mPMove;
     mPPMove = o.mPPMove;
+    mHistory = o.mHistory;
     return *this;
   }
-  GoGameState(GoGameState&& o) noexcept : mBoard(s::move(o.mBoard)), mNPlayer(o.mNPlayer), mPMove(o.mPMove), mPPMove(o.mPPMove), mHistory(s::move(o.mHistory)) {}
+  GoGameState(GoGameState&& o) noexcept :
+    mBoard(s::move(o.mBoard)),
+    mNPlayer(o.mNPlayer),
+    mPMove(o.mPMove),
+    mPPMove(o.mPPMove),
+    mHistory(s::move(o.mHistory))
+  {}
   GoGameState& operator=(GoGameState&& o) noexcept {
     mBoard = s::move(o.mBoard);
     mNPlayer = o.mNPlayer;

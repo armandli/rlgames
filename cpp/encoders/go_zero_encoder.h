@@ -61,9 +61,9 @@ public:
             if (player == nplayer) mBoard[idx + IZ * 3] = 1.f;
             else                   mBoard[idx + IZ * 7] = 1.f;
           }
+        } else if (gs.does_move_violate_ko(Move(M::Play, pt))){
+            mBoard[idx + IZ * 8] = 1.f;
         }
-        if (gs.does_move_violate_ko(Move(M::Play, pt)))
-          mBoard[idx + IZ * 8] = 1.f;
       }
     // use default komi instead of 1.0F
     if (nplayer == Player::White){
