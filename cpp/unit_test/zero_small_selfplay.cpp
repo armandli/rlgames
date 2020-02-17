@@ -8,6 +8,7 @@
 #include <vector>
 #include <iostream>
 #include <filesystem>
+#include <algorithm>
 
 #include <type_alias.h>
 #include <types.h>
@@ -83,6 +84,8 @@ int main(int argc, const char* argv[]){
     R::load_model(model_container, model_file, optimizer_file);
   }
 
+  model_container.model->to(device);
+
   //the agents will share the same model, but use a different experience collector buffer
   R::ZeroAgent<decltype(model_container), R::dirichlet_distribution<action_size>, R::Splitmix, R::GoBoard<SZ>, R::GoGameState<SZ>, action_size> agent1(
     model_container,
@@ -105,16 +108,20 @@ int main(int argc, const char* argv[]){
   s::vector<float> losses;
   uint64 a1_wins = 0, a2_wins = 0, tie_count = 0;
 
+  uint reporting_interval = s::max(episodes / 10U, 1U);
+
   for (uint i = 0; i < episodes; ++i){
     R::ZeroEpisodicExpCollector buffer1(max_bsize, state_size, action_size, device);
     R::ZeroEpisodicExpCollector buffer2(max_bsize, state_size, action_size, device);
     agent1.set_exp(buffer1);
     agent2.set_exp(buffer2);
 
-    R::ZeroExperience experience;
+    R::ZeroExperience experience(device);
     for (uint j = 0; j < batchsize; ++j){
       R::GoGameState<SZ> state;
       R::Player turn = R::Player::Black;
+
+      auto gstart = c::high_resolution_clock::now();
 
       while (not state.is_over()){
         R::Move move(R::M::Pass);
@@ -147,10 +154,23 @@ int main(int argc, const char* argv[]){
       default: assert(false);
       }
 
+      auto gstop = c::high_resolution_clock::now();
+      auto duration = c::duration_cast<c::microseconds>(gstop - gstart);
+
+      s::cout << "Game time: " << duration.count() << " microseconds" << s::endl;
+
       R::append_experiences(experience, buffer1, buffer2);
     }
-    losses.push_back(train(model_container, experience));
+    float loss = train(model_container, experience);
+
+    if (i % reporting_interval){
+      s::cout << "Episode " << i << ". Loss " << loss << s::endl;
+    }
+
+    losses.push_back(loss);
   }
+
+  s::cout << "Self play complete. Saving training and result." << s::endl;
 
   R::save_model(model_container, model_file, optimizer_file);
 

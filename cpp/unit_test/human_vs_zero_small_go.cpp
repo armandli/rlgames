@@ -11,7 +11,7 @@
 #include <types.h>
 #include <go_types.h>
 #include <splitmix.h>
-#include <dirichlet_distribution.h>
+#include <null_distribution.h>
 #include <pytorch_util.h>
 #include <encoders/go_action_encoder.h>
 #include <encoders/go_zero_encoder.h>
@@ -114,7 +114,9 @@ int main(int argc, const char* argv[]){
 
   R::load_model(model_container, model_file, optimizer_file);
 
-  R::ZeroAgent<decltype(model_container), R::dirichlet_distribution<action_size>, R::Splitmix, R::GoBoard<SZ>, R::GoGameState<SZ>, action_size> agent(
+  model_container.model->to(device);
+
+  R::ZeroAgent<decltype(model_container), R::null_distribution<action_size>, R::Splitmix, R::GoBoard<SZ>, R::GoGameState<SZ>, action_size> agent(
     model_container,
     device,
     3200,   /*max expansion*/
