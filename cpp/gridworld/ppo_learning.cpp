@@ -29,8 +29,9 @@ int main(int argc, char* argv[]){
     device = t::Device(t::kCUDA);
   }
 
+  m::GridEnv env(grid_size, m::GridEnvMode::RandomRepeatedComplex, 1000U, false /*step count*/, true /*history discount*/, true /*history termination*/);
   //m::GridEnv env(grid_size, m::GridEnvMode::RandomComplex, false /*step discount*/, true /*history discount*/);
-  m::GridEnv env(grid_size, m::GridEnvMode::RandomSimple, false /*step discount*/, true /*history discount*/);
+  //m::GridEnv env(grid_size, m::GridEnvMode::RandomSimple, false /*step discount*/, true /*history discount*/);
   //m::GridEnv env(grid_size, m::GridEnvMode::StaticSimple, false /*step discount*/);
   m::GridStateConvEncoder state_encoder(env);
   m::GridActionEncoder action_encoder(env);
@@ -62,6 +63,7 @@ int main(int argc, char* argv[]){
     time(NULL)
   );
 
+  env.set_repeat_count(1);
   m::simulate_gridworld_ac(env, rlm, mp.max_steps, device, true);
 
   int sum = 0;

@@ -27,6 +27,7 @@ enum class GridEnvMode : uint {
   RandomPlayerLocation,
   RandomSimple,
   RandomComplex,
+  RandomRepeatedComplex, //repeat the same random generated map a k times
   RandomMaze,
 };
 
@@ -34,10 +35,16 @@ class GridEnv {
   uint                           mSize;
   GridEnvMode                    mMode;
   mutable s::unordered_set<uint> mHistory;
+  // used for random repeated games, repeating the same random map k times
+  uint                           mRepeatTotalCount;
+  mutable uint                   mPrevSeed;
+  mutable uint                   mRepeatCount;
   //taking each step without reaching the goal have -1 value
   bool                           mUseStepDiscount;
   //we save board history, and give very negative reward for going back to historical position
   bool                           mUseHistoricalMoveDiscount;
+  //we terminate the game and return minimal reward if previous state is reached
+  bool                           mTerminateOnHistoricalMove;
 
   g::GridWorld static_simple_init() const {
     return g::GridWorld(mSize, 1, 1, 1, 0, true);
@@ -58,6 +65,20 @@ class GridEnv {
     while (not w.is_solvable()){
       w = g::GridWorld(mSize, mSize, 2, 1, rand(), true);
     }
+    return w;
+  }
+
+  g::GridWorld random_repeated_complex_init() const {
+    if (mRepeatCount == 0){
+      mPrevSeed = s::rand();
+      mRepeatCount = mRepeatTotalCount;
+    }
+    g::GridWorld w(mSize, mSize, 2, 1, mPrevSeed, true);
+    while (not w.is_solvable()){
+      mPrevSeed = s::rand();
+      w = g::GridWorld(mSize, mSize, 2, 1, mPrevSeed, true);
+    }
+    mRepeatCount--;
     return w;
   }
 
@@ -138,15 +159,26 @@ class GridEnv {
     else                                           return true;
   }
 public:
-  GridEnv(uint sz, GridEnvMode mode, bool step_discount = true, bool historical_discount = false):
+  GridEnv(
+    uint sz,
+    GridEnvMode mode,
+    uint num_repeats = 0,
+    bool step_discount = true,
+    bool historical_discount = false,
+    bool historical_termination = false):
     mSize(sz),
     mMode(mode),
+    mRepeatTotalCount(num_repeats),
+    mPrevSeed(0U),
+    mRepeatCount(0U),
     mUseStepDiscount(step_discount),
-    mUseHistoricalMoveDiscount(historical_discount){
+    mUseHistoricalMoveDiscount(historical_discount),
+    mTerminateOnHistoricalMove(historical_termination){
     switch (mMode){
     case GridEnvMode::RandomPlayerLocation:
     case GridEnvMode::RandomSimple:
     case GridEnvMode::RandomComplex:
+    case GridEnvMode::RandomRepeatedComplex:
     case GridEnvMode::RandomMaze:
       s::srand(time(0));
     default:;
@@ -165,6 +197,8 @@ public:
       return random_simple_init();
     case GridEnvMode::RandomComplex:
       return random_complex_init();
+    case GridEnvMode::RandomRepeatedComplex:
+      return random_repeated_complex_init();
     case GridEnvMode::RandomMaze: //flawed, best with size <= 64
       return random_maze_init_check();
     default: assert(false);
@@ -185,8 +219,10 @@ public:
     // we may shape the reward to explicitly discourage going backward
     // in this game a cheat to help improve result
     float history_penalty = -1.;
-    if (mUseHistoricalMoveDiscount && is_move_in_history(ins))
+    if ((mUseHistoricalMoveDiscount || mTerminateOnHistoricalMove) &&
+        is_move_in_history(ins)){
       history_penalty = ins.min_reward();
+    }
 
     if (reward == 0){
       if (mUseStepDiscount)
@@ -205,6 +241,11 @@ public:
     return (float)ins.min_reward() * 2;
   }
 
+  void set_repeat_count(uint new_repeat){
+    mRepeatTotalCount = new_repeat;
+    mPrevSeed = rand();
+  }
+
   void apply_action(g::GridWorld& ins, g::Action action) const {
     mHistory.insert(hash_world(ins));
 
@@ -212,7 +253,10 @@ public:
   }
 
   bool is_termination(g::GridWorld& ins) const {
-    return ins.is_complete();
+    if (mTerminateOnHistoricalMove && is_move_in_history(ins))
+      return true;
+    else
+      return ins.is_complete();
   }
 
   void display(g::GridWorld& ins) const {

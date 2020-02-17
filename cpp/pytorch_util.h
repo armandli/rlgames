@@ -1,18 +1,18 @@
-#ifndef GRIDWORLD_LEARNING_UTIL
-#define GRIDWORLD_LEARNING_UTIL
-
-#include <torch/torch.h>
+#ifndef RLGAMES_PYTORCH_UTIL
+#define RLGAMES_PYTORCH_UTIL
 
 #include <cassert>
 #include <vector>
 #include <random>
 
-//TODO: retire this, use rlgames pytorch_util.h
+#include <type_alias.h>
 
-namespace gridworld_pt {
+#include <torch/torch.h>
 
-namespace t = torch;
+namespace rlgames {
+
 namespace s = std;
+namespace t = torch;
 
 template <typename MODULE>
 void copy_state(MODULE dst, MODULE src){
@@ -43,37 +43,6 @@ uint sample_discrete_distribution(float* probabilities, size_t size, ENG& eng){
   return dist(eng);
 }
 
-struct Dim {
-  uint x, y, z;
-  Dim(): x(0), y(0), z(0) {}
-  explicit Dim(uint x): x(x), y(0), z(0) {}
-  Dim(uint x, uint y): x(x), y(y), z(0) {}
-  Dim(uint x, uint y, uint z): x(x), y(y), z(z) {}
-  Dim(const Dim& o):
-    x(o.x), y(o.y), z(o.z)
-  {}
-  Dim& operator=(const Dim& o){
-    x = o.x;
-    y = o.y;
-    z = o.z;
-    return *this;
-  }
-
-  uint size() const {
-    if (z > 0)      return 3U;
-    else if (y > 0) return 2U;
-    else if (x > 0) return 1U;
-    else            return 0U;
-  }
-
-  uint flatten_size() const {
-    if (z > 0)      return x * y * z;
-    else if (y > 0) return x * y;
-    else if (x > 0) return x;
-    else            return 0U;
-  }
-};
-
 //helper function that creates a ConvOptions<D> from ConvNdOptions<D>, which does not exist in pytorch
 //NOTE: this loses information regarding
 template <size_t D>
@@ -88,7 +57,43 @@ t::nn::ConvOptions<D> conv_options(const t::nn::detail::ConvNdOptions<D>& convnd
   ;
 }
 
-} // gridworld_pt
+struct TensorDim {
+  uint i,j,k;
 
+  TensorDim() = default;
+  explicit TensorDim(uint i): i(i), j(0U), k(0U) {}
+  TensorDim(uint i, uint j): i(i), j(j), k(0U) {}
+  TensorDim(uint i, uint j, uint k): i(i), j(j), k(k) {}
 
-#endif//GRIDWORLD_LEARNING_UTIL
+  uint dim() const {
+    if      (i == 0U) return 0U;
+    else if (j == 0U) return 1U;
+    else if (k == 0U) return 2U;
+    else              return 3U;
+  }
+
+  uint flatten_size() const {
+    if      (i == 0U) return 0U;
+    else if (j == 0U) return i;
+    else if (k == 0U) return i * j;
+    else              return i * j * k;
+  }
+};
+
+//pair of TensorDim
+struct TensorDimP {
+  TensorDim x, y;
+  TensorDimP() = default;
+  TensorDimP(TensorDim&& x, TensorDim&& y): x(s::move(x)), y(s::move(y)) {}
+};
+
+//pair of tensors
+struct TensorP {
+  t::Tensor x, y;
+  TensorP() = default;
+  TensorP(t::Tensor x, t::Tensor y): x(x), y(y) {}
+};
+
+} // rlgames
+
+#endif//RLGAMES_PYTORCH_UTIL

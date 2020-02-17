@@ -229,15 +229,16 @@ public:
     //happened for rule checking
   }
 
-  //TODO: horizontal index should avoid the letter I
   s::ostream& print(s::ostream& out) const {
     char bchar = 'X';
     char wchar = '0';
 
     out << "   ";
     if (SZ > 9) out << " ";
-    for (char c = 'A', i = 0; i < SZ; c++, i++)
+    for (char c = 'A', i = 0; i < SZ; c++, i++){
+      if (c == 'I') c++;
       out << c << ' ';
+    }
     out << '\n';
     for (ubyte i = SZ - 1; i < SZ; --i){
       if (i < 10) out << ' ';
@@ -257,8 +258,10 @@ public:
     }
     out << "   ";
     if (SZ > 9) out << " ";
-    for (char c = 'A', i = 0; i < SZ; c++, i++)
+    for (char c = 'A', i = 0; i < SZ; c++, i++){
+      if (c == 'I') c++;
       out << c << ' ';
+    }
     out << '\n';
     return out;
   }
@@ -282,6 +285,19 @@ public:
 template <ubyte SZ>
 s::ostream& operator<<(s::ostream& out, const GoBoard<SZ>& board){
   return board.print(out);
+}
+
+template <ubyte SZ>
+constexpr float default_komi(){
+  if      constexpr(SZ < 5)              return 0.F;
+  else if constexpr(SZ >= 5 &&  SZ < 7)  return 0.5F;
+  else if constexpr(SZ >= 7 &&  SZ < 10) return 1.5F;
+  else if constexpr(SZ >= 10 && SZ < 13) return 2.5F;
+  else if constexpr(SZ >= 13 && SZ < 14) return 3.5F;
+  else if constexpr(SZ >= 14 && SZ < 16) return 4.5F;
+  else if constexpr(SZ >= 16 && SZ < 17) return 5.5F;
+  else if constexpr(SZ >= 17 && SZ < 19) return 6.5F;
+  else                                   return 7.5F;
 }
 
 // scoring using area rule: player pieces on board + territory + komi
@@ -421,9 +437,16 @@ public:
     mNPlayer = o.mNPlayer;
     mPMove = o.mPMove;
     mPPMove = o.mPPMove;
+    mHistory = o.mHistory;
     return *this;
   }
-  GoGameState(GoGameState&& o) noexcept : mBoard(s::move(o.mBoard)), mNPlayer(o.mNPlayer), mPMove(o.mPMove), mPPMove(o.mPPMove), mHistory(s::move(o.mHistory)) {}
+  GoGameState(GoGameState&& o) noexcept :
+    mBoard(s::move(o.mBoard)),
+    mNPlayer(o.mNPlayer),
+    mPMove(o.mPMove),
+    mPPMove(o.mPPMove),
+    mHistory(s::move(o.mHistory))
+  {}
   GoGameState& operator=(GoGameState&& o) noexcept {
     mBoard = s::move(o.mBoard);
     mNPlayer = o.mNPlayer;
@@ -474,7 +497,7 @@ public:
   Player winner(){
     if (not is_over()) return Player::Unknown;
     if (mPMove.mty == M::Resign) return mNPlayer;
-    GoAreaScore<SZ> scorer(mBoard);
+    GoAreaScore<SZ> scorer(mBoard, default_komi<SZ>());
     return scorer.winner();
   }
   GoGameState& apply_move(Move move){

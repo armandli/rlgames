@@ -29,7 +29,9 @@ int main(int argc, char* argv[]){
     device = t::Device(t::kCUDA);
   }
 
-  m::GridEnv env(grid_size, m::GridEnvMode::RandomSimple, false /*not step discount*/, true /*historical discount*/);
+  m::GridEnv env(grid_size, m::GridEnvMode::RandomRepeatedComplex, 1000, false /*step discount*/, false /*historical discount*/, false /*historical move termination*/);
+  //m::GridEnv env(grid_size, m::GridEnvMode::RandomSimple, false /*not step discount*/, true /*historical discount*/, true /*historical termination*/);
+  //m::GridEnv env(grid_size, m::GridEnvMode::RandomSimple, false /*not step discount*/, true /*historical discount*/);
   //m::GridEnv env(grid_size, m::GridEnvMode::StaticSimple);
   m::GridStateConvEncoder state_encoder(env);
   m::GridActionEncoder action_encoder(env);
@@ -37,15 +39,15 @@ int main(int argc, char* argv[]){
     m::SimpleConvQModel(state_encoder.state_size(), m::Dim(4, 5, 5), m::Dim(6, 3 ,3), 164, action_encoder.action_size()),
     s::move(state_encoder),
     s::move(action_encoder),
-    1e-4F // learning rate
+    1e-5F // learning rate
   );
   m::qlearning_metaparams<m::epsilon_greedy_metaparams, m::experience_replay_metaparams> mp;
-  mp.epochs = 16000;
+  mp.epochs = 8000;
   mp.gamma = 0.99;
   mp.tc_steps = 500;
-  mp.max_steps = grid_size * grid_size / (grid_size / 2);
+  mp.max_steps = grid_size * grid_size;
   mp.exp.epsilon = 1.;
-  mp.erb.sz = 2000;
+  mp.erb.sz = 8000;
   mp.erb.batchsize = 256;
   s::vector<float> losses;
 
@@ -58,6 +60,7 @@ int main(int argc, char* argv[]){
     time(NULL)
   );
 
+  env.set_repeat_count(1);
   m::simulate_gridworld(env, rlm, mp.max_steps, device, true);
 
   if (losses.size() > 0){

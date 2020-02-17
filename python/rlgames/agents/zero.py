@@ -39,7 +39,7 @@ class ZeroTreeNode:
     self.children[move] = child_node
 
   def has_child(self, move):
-    if move is  None:
+    if move is None:
       return False
     return move in self.children
 
@@ -88,10 +88,9 @@ class ZeroAgent(Agent):
       # we cannot choose a different node to visit because visit
       # count indicate best choice.
       if next_move is None:
-        value = node.value
+        value = -1. * node.value
         move = node.last_move
         node = node.parent
-        value = -1. * value
         while node is not None:
           node.record_visit(move, value)
           move = node.last_move
@@ -159,7 +158,7 @@ class ZeroAgent(Agent):
     action_target = experience.vcounts / visit_sums
     value_target = experience.rewards
     self.model.compile(SGD(lr=learning_rate), loss=['categorical_crossentropy', 'mse'])
-    self.model.fit(model_input, [action_target, value_target], batch_size=batch_size) #TODO: no epoch specification ?
+    self.model.fit(model_input, [action_target, value_target], batch_size=batch_size)
 
   def serialize(self, h5file):
     h5file.create_group('encoder')

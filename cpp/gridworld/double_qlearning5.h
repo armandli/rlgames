@@ -116,7 +116,7 @@ void double_qlearning5(
     if (replay_buffer.is_filled()){
       //epsilon decay
       if (mp.exp.epsilon > 0.1)
-        mp.exp.epsilon -= 1. / s::pow((double)mp.epochs, 0.7);
+        mp.exp.epsilon -= 1. / s::pow((double)mp.epochs, 0.9);
 
       if (i % 10 == 0)
         s::cout << "epsilon: " << mp.exp.epsilon << s::endl;
