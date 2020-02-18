@@ -122,6 +122,7 @@ int main(int argc, const char* argv[]){
     3200,   /*max expansion*/
     0.0,    /*exploration factor*/
     1000.,  /*dirichlet distribution alpha*/
+    0.,     /*noise factor*/
     rand()  /*random seed*/
   );
 

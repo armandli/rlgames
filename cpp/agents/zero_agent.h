@@ -34,6 +34,7 @@ private:
   ZeroEpisodicExpCollector* mExp;
   uint                      mMaxExpand;
   float                     mEFactor;
+  float                     mNoiseFactor;
 protected:
   struct Node;
 
@@ -62,7 +63,7 @@ protected:
     Node(GameState&& gs, float qvalue, float* priors, Node* parent = nullptr, uint last_midx = BF):
       gs(s::move(gs)),
       qvalue(qvalue),
-      total_count(1U),
+      total_count(1U), //TODO: maybe 1 is not correct
       parent(parent),
       last_midx(last_midx){
       for (uint i = 0; i < BF; ++i)
@@ -150,7 +151,7 @@ protected:
       float q = node->expected_value(idx);
       float p = node->prior(idx);
       float n = node->visit_count(idx);
-      score[idx] = q + (mEFactor + noise[idx]) * p * (s::sqrt(tcount) / (n + 1));
+      score[idx] = q + mEFactor * ((1 - mNoiseFactor) * p + mNoiseFactor * noise[idx]) * (s::sqrt(tcount) / (n + 1));
     }
 
     uint max_idx = s::max_element(s::begin(score), s::end(score)) - s::begin(score);
@@ -167,14 +168,15 @@ protected:
     }
   }
 public:
-  ZeroAgent(Model& model, t::Device device, uint max_expansion, float exploration_factor, float noise_alpha, uint seed):
+  ZeroAgent(Model& model, t::Device device, uint max_expansion, float exploration_factor, float noise_alpha, float noise_factor, uint seed):
     mModel(model),
     mNoise(noise_alpha),
     mDevice(device),
     mGen(seed),
     mExp(nullptr),
     mMaxExpand(max_expansion),
-    mEFactor(exploration_factor)
+    mEFactor(exploration_factor),
+    mNoiseFactor(noise_factor)
   {}
 
   Move select_move(const GameState& gs){
