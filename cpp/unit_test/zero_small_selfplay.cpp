@@ -92,7 +92,8 @@ int main(int argc, const char* argv[]){
     device,
     1600,   /*max expansion*/
     0.2,    /*exploration factor*/
-    0.3,    /*dirichlet distribution alpha*/
+    0.03,   /*dirichlet distribution alpha*/
+    0.25,   /*noise factor*/
     rand()  /*random seed*/
   );
 
@@ -101,7 +102,8 @@ int main(int argc, const char* argv[]){
     device,
     1600,   /*max expansion*/
     0.2,    /*exploration factor*/
-    0.3,    /*dirichlet distribution alpha*/
+    0.03,   /*dirichlet distribution alpha*/
+    0.25,   /*noise factor*/
     rand()  /*random seed*/
   );
 
