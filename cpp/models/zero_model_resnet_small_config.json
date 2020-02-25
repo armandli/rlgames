@@ -1,0 +1,136 @@
+[
+  {
+    "tensordim" : {
+      "i" : 21,
+      "j" : 3,
+      "k" : 3
+    }
+  },
+  {
+    "tensordim" : {
+      "i" : 42,
+      "j" : 3,
+      "k" : 3
+    }
+  },
+  {
+    "tensordim" : {
+      "i" : 84,
+      "j" : 3,
+      "k" : 3
+    }
+  },
+  {
+    "tensordim" : {
+      "i" : 168,
+      "j" : 3,
+      "k" : 3
+    }
+  },
+  {
+    "tensordim" : {
+      "i" : 256,
+      "j" : 3,
+      "k" : 3
+    }
+  },
+  {
+    "tensordim" : {
+      "i" : 168,
+      "j" : 3,
+      "k" : 3
+    }
+  },
+  {
+    "conv_resnet_option" : [
+      {
+        "tensordim" : {
+          "i" : 21
+        }
+      },
+      {
+        "tensordim" : {
+          "i" : 21,
+          "j" : 3,
+          "k" : 3
+        }
+      },
+      {
+        "tensordim" : {
+          "i" : 21,
+          "j" : 3,
+          "k" : 3
+        }
+      }
+    ]
+  },
+  {
+    "conv_resnet_option" : [
+      {
+        "tensordim" : {
+          "i" : 42
+        }
+      },
+      {
+        "tensordim" : {
+          "i" : 42,
+          "j" : 3,
+          "k" : 3
+        }
+      },
+      {
+        "tensordim" : {
+          "i" : 42,
+          "j" : 3,
+          "k" : 3
+        }
+      }
+    ]
+  },
+  {
+    "conv_resnet_option" : [
+      {
+        "tensordim" : {
+          "i" : 84
+        }
+      },
+      {
+        "tensordim" : {
+          "i" : 84,
+          "j" : 3,
+          "k" : 3
+        }
+      },
+      {
+        "tensordim" : {
+          "i" : 84,
+          "j" : 3,
+          "k" : 3
+        }
+      }
+    ]
+  },
+  {
+    "conv_resnet_option" : [
+      {
+        "tensordim" : {
+          "i" : 168
+        }
+      },
+      {
+        "tensordim" : {
+          "i" : 168,
+          "j" : 3,
+          "k" : 3
+        }
+      },
+      {
+        "tensordim" : {
+          "i" : 168,
+          "j" : 3,
+          "k" : 3
+        }
+      }
+    ]
+  }
+]

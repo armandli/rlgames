@@ -32,6 +32,7 @@ class ZeroGoStateEncoder : public StateEncoderBase<GoGameState<SZ>, TensorP, Zer
 
   static constexpr uint IZ = SZ * SZ;
 public:
+  //TODO: encode_state takes 9% of total computational time
   TensorP encode_state(const GoGameState<SZ>& gs, t::Device device){
     const GoBoard<SZ>& board = gs.board();
     Player nplayer = gs.next_player();
@@ -66,6 +67,7 @@ public:
         }
       }
     // use default komi instead of 1.0F
+    // TODO: this may not be correct way of using komi
     if (nplayer == Player::White){
       mState[0] = default_komi<SZ>();
       mState[1] = 0.f;

@@ -1,7 +1,6 @@
 #include <cassert>
 #include <ctime>
 #include <cctype>
-#include <optional>
 #include <string>
 #include <random>
 #include <chrono>
@@ -18,7 +17,7 @@
 #include <encoders/go_action_encoder.h>
 #include <encoders/go_zero_encoder.h>
 #include <models/model_base.h>
-#include <models/zero_model_small.h>
+#include <models/zero_model_resnet_small.h>
 #include <agents/zero_agent.h>
 
 #include <torch/torch.h>
@@ -28,7 +27,7 @@ namespace c = s::chrono;
 namespace t = torch;
 namespace R = rlgames;
 
-constexpr ubyte SZ= 9;
+constexpr ubyte SZ= 13;
 
 R::Move parse_human_move(){
   do {
@@ -74,11 +73,11 @@ int main(int argc, const char* argv[]){
   R::TensorDimP state_size = state_encoder.state_size();
   constexpr uint action_size = R::ZeroGoActionEncoder<SZ>::action_size();
 
-  R::ModelContainer<R::ZeroModelSmall, R::ZeroGoStateEncoder<SZ>, R::ZeroGoActionEncoder<SZ>, t::optim::Adam> model_container(
-    R::ZeroModelSmall(state_size, action_size, R::load_model_option<R::ZeroModelSmallOptions>(model_config_file)),
-    s::move(state_encoder),
-    s::move(action_encoder),
-    1E-4F //learning_rate
+  R::ModelContainer<R::ZeroModelResnetSmall, R::ZeroGoStateEncoder<SZ>, R::ZeroGoActionEncoder<SZ>, t::optim::Adam> model_container(
+      R::ZeroModelResnetSmall(state_size, action_size, R::load_model_option<R::ZeroModelResnetSmallOptions>(model_config_file)),
+      s::move(state_encoder),
+      s::move(action_encoder),
+      1E-5 //learning_rate
   );
 
   R::load_model(model_container, model_file, optimizer_file, device);
