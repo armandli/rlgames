@@ -54,7 +54,7 @@ protected:
 
   struct Node {
     GameState gs;
-    float     qvalue;
+    float     qvalue; //TODO: this is actually never used after node creation!
     uint      total_count;
     Branch    branches[BF];
     Node*     parent;
@@ -63,7 +63,7 @@ protected:
     Node(GameState&& gs, float qvalue, float* priors, Node* parent = nullptr, uint last_midx = BF):
       gs(s::move(gs)),
       qvalue(qvalue),
-      total_count(1U), //TODO: maybe 1 is not correct
+      total_count(1U),
       parent(parent),
       last_midx(last_midx){
       for (uint i = 0; i < BF; ++i)
@@ -141,7 +141,7 @@ protected:
     assert(node != nullptr);
     if (node->gs.is_over()) return BF;
 
-    s::vector<Move> moves = node->gs.legal_moves();
+    s::vector<Move> moves = node->gs.legal_moves(); //TODO: cannot switch to relaxed_legal_moves, due to violating 0 liberty rule
     s::array<float, BF> noise = mNoise(mGen);
     float tcount = node->total_count;
     s::array<float, BF> score;
@@ -154,7 +154,7 @@ protected:
       score[idx] = q + mEFactor * ((1 - mNoiseFactor) * p + mNoiseFactor * noise[idx]) * (s::sqrt(tcount) / (n + 1));
     }
 
-    uint max_idx = s::max_element(s::begin(score), s::end(score)) - s::begin(score);
+    uint max_idx = random_max_element(s::begin(score), s::end(score), [](float a, float b){return a < b;}) - s::begin(score);
     return max_idx;
   }
 
@@ -166,6 +166,23 @@ protected:
         visit_counts[i] = root.branches[i].visit_count;
       mExp->append(state, visit_counts);
     }
+  }
+
+  template <typename Iter, typename Less>
+  Iter random_max_element(Iter begin, Iter end, Less less){
+    s::vector<Iter> max_iters;
+    Iter it = begin;
+    max_iters.push_back(it);
+    it++;
+    while (it != end){
+      if (not less(*it, *max_iters.front())){
+        if (less(*max_iters.front(), *it))
+          max_iters.clear();
+        max_iters.push_back(it);
+      }
+      it++;
+    }
+    return max_iters[mGen() % max_iters.size()];
   }
 public:
   ZeroAgent(Model& model, t::Device device, uint max_expansion, float exploration_factor, float noise_alpha, float noise_factor, uint seed):
@@ -199,6 +216,7 @@ public:
         //to explore other nodes because visit count indicate best choice
         value = -1.F * node->qvalue;
         next_midx = node->last_midx;
+        node = node->parent;
       } else {
         //we have not expanded this node
         GameState new_gs = node->gs;
@@ -220,7 +238,7 @@ public:
     //count
     append_experience(*root);
 
-    int max_midx = s::max_element(s::begin(root->branches), s::end(root->branches), [](Branch& a, Branch& b){ return a.visit_count < b.visit_count; }) - s::begin(root->branches);
+    int max_midx = random_max_element(s::begin(root->branches), s::end(root->branches), [](Branch& a, Branch& b){ return a.visit_count < b.visit_count; }) - s::begin(root->branches);
     return mModel.action_encoder.idx_to_move(max_midx);
   }
 

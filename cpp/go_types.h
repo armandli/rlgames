@@ -100,6 +100,7 @@ protected:
 
     return mBoard[index<SZ>(pt)];
   }
+  //TODO: this operation takes 21% of total computational time
   //TODO: interface redesign, does it really need both index and string ref ?
   void replace_string(const GoStr<SZ>& string, udyte index){
     const s::bitset<IZ>& stones = string.stones();
@@ -168,6 +169,7 @@ public:
     if (idx == EMPTY) return nullptr;
     else              return &mStrings[idx];
   }
+  //TODO: place_stone is the slowest and the most popular operation, this takes up 33% of total time
   void place_stone(Player player, Pt pt){
     assert(is_on_grid(pt));
     assert(get_string_idx(pt) == EMPTY);
@@ -472,6 +474,8 @@ public:
     test_board.place_stone(mNPlayer, move.mpt);
     return mHistory.find(test_board.hash()) != s::end(mHistory);
   }
+  //TODO: zero does not need to check if a move is self capture,
+  //      we can create a weaker version that does not do self capture check
   bool is_valid_move(Move move) const {
     if (is_over())                                    return false;
     if (move.mty == M::Pass || move.mty == M::Resign) return true;
@@ -481,6 +485,13 @@ public:
       not is_move_self_capture(move) &&
       not does_move_violate_ko(move);
   }
+  bool is_valid_move_relaxed(Move move) const {
+    if (is_over())                                    return false;
+    if (move.mty == M::Pass || move.mty == M::Resign) return true;
+    return
+      mBoard.get(move.mpt) == Player::Unknown &&
+      not does_move_violate_ko(move);
+  }
   s::vector<Move> legal_moves() const {
     if (is_over()) return s::vector<Move>();
     s::vector<Move> ret; ret.reserve(IZ);
@@ -488,6 +499,19 @@ public:
       for (uint c = 0; c < SZ; ++c){
         Move m(M::Play, Pt(r, c));
         if (is_valid_move(m))
+          ret.push_back(m);
+      }
+    ret.push_back(Move(M::Pass));
+    ret.push_back(Move(M::Resign));
+    return ret;
+  }
+  s::vector<Move> relaxed_legal_moves() const {
+    if (is_over()) return s::vector<Move>();
+    s::vector<Move> ret; ret.reserve(IZ);
+    for (uint r = 0; r < SZ; ++r)
+      for (uint c = 0; c < SZ; ++c){
+        Move m(M::Play, Pt(r, c));
+        if (is_valid_move_relaxed(m))
           ret.push_back(m);
       }
     ret.push_back(Move(M::Pass));

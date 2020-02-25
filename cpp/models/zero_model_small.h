@@ -37,7 +37,7 @@ struct ZeroModelSmallOptions {
     pcsz(pcsz),
     vcsz(vcsz)
   {}
-  ZeroModelSmallOptions(const s::vector<TensorDim> dims){
+  ZeroModelSmallOptions(const s::vector<TensorDim>& dims){
     assert(dims.size() == 6);
 
     bc1sz = dims[0];
