@@ -4,12 +4,13 @@
 #include <cassert>
 #include <array>
 #include <ostream>
+#include <istream>
 
 #include <type_alias.h>
 
-namespace s = std;
-
 namespace rlgames {
+
+namespace s = std;
 
 struct Pt {
   ubyte r, c;
@@ -118,6 +119,47 @@ s::ostream& operator<<(s::ostream& out, Move m){
   default: assert(false);
   }
   return out;
+}
+
+Move string_to_move(const s::string& str){
+  if (str.size() < 2) return Move(M::Unknown);
+  char colstr = str[0];
+  s::string rowstr = str.substr(1);
+  int colidx, rowidx;
+  if (s::isupper(colstr)){
+    if (colstr == 'I') return Move(M::Unknown);
+    colidx = colstr - 'A';
+    if (colstr >= 'J')
+      colidx -= 1;
+  } else {
+    if (colstr == 'i') return Move(M::Unknown);
+    colidx = colstr - 'a';
+    if (colstr >= 'j')
+      colidx -= 1;
+  }
+  try {
+    rowidx = s::stoi(rowstr) - 1;
+  } catch (s::invalid_argument& err){
+    return Move(M::Unknown);
+  }
+  return Move(M::Play, Pt(rowidx, colidx));
+}
+
+s::istream& operator>>(s::istream& in, Move& m){
+  s::string s; in >> s;
+  m = string_to_move(s);
+  return in;
+}
+
+Move string_to_move(const s::string& str, uint board_size){
+  Move m = string_to_move(str);
+  if (m.mty == M::Play){
+    if (m.mpt.r < board_size && m.mpt.c < board_size)
+      return m;
+    else
+      return Move(M::Unknown);
+  } else
+    return m;
 }
 
 enum class Player : ubyte {

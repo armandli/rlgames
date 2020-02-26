@@ -10,7 +10,6 @@
 
 #include <type_alias.h>
 #include <types.h>
-#include <input_parser.h>
 #include <go_types.h>
 #include <splitmix.h>
 #include <null_distribution.h>
@@ -105,11 +104,13 @@ private:
     if (mGoGameState.is_over())
       return;
 
-    s::optional<R::Move> opt_move = R::parse_board_index(input_str, SZ);
-    if (not opt_move)
+    R::Move move = R::string_to_move(input_str, SZ);
+    if (move.mty == R::M::Unknown){
+      //TODO: log error parsing input
       return;
+    }
 
-    mGoGameState.apply_move(opt_move.value());
+    mGoGameState.apply_move(move);
 
     display_board();
 
