@@ -8,8 +8,8 @@
 #include <filesystem>
 
 #include <type_alias.h>
-#include <input_parser.h>
 #include <types.h>
+#include <input_parser.h>
 #include <go_types.h>
 #include <splitmix.h>
 #include <null_distribution.h>
@@ -28,14 +28,6 @@ namespace t = torch;
 namespace R = rlgames;
 
 constexpr ubyte SZ= 13;
-
-R::Move parse_human_move(){
-  do {
-    s::optional<R::Move> opt_move = R::get_board_index_from_stdio(SZ);
-    if (opt_move) return opt_move.value();
-    else          s::cout << "Unable to parse input. try again" << s::endl;
-  } while (true);
-}
 
 int main(int argc, const char* argv[]){
   s::string model_config_file;
@@ -74,10 +66,10 @@ int main(int argc, const char* argv[]){
   constexpr uint action_size = R::ZeroGoActionEncoder<SZ>::action_size();
 
   R::ModelContainer<R::ZeroModelResnetSmall, R::ZeroGoStateEncoder<SZ>, R::ZeroGoActionEncoder<SZ>, t::optim::Adam> model_container(
-      R::ZeroModelResnetSmall(state_size, action_size, R::load_model_option<R::ZeroModelResnetSmallOptions>(model_config_file)),
-      s::move(state_encoder),
-      s::move(action_encoder),
-      1E-5 //learning_rate
+    R::ZeroModelResnetSmall(state_size, action_size, R::load_model_option<R::ZeroModelResnetSmallOptions>(model_config_file)),
+    s::move(state_encoder),
+    s::move(action_encoder),
+    1E-5F //learning_rate
   );
 
   R::load_model(model_container, model_file, optimizer_file, device);
@@ -103,7 +95,7 @@ int main(int argc, const char* argv[]){
     R::Move move(R::M::Pass);
 
     switch (turn){
-    case R::Player::Black: move = parse_human_move(); break;
+    case R::Player::Black: move = R::parse_move(SZ); break;
     case R::Player::White: move = agent.select_move(state); break;
     default: assert(false);
     }
