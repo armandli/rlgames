@@ -1,6 +1,10 @@
 #ifndef GRIDWORLD_EXPERIENCE_UTIL
 #define GRIDWORLD_EXPERIENCE_UTIL
 
+#include <vector>
+
+#include <torch/torch.h>
+
 namespace gridworld_pt {
 
 namespace s = std;
@@ -15,7 +19,7 @@ struct Exp {
   bool      ntstate_isterminal;
 
   Exp():
-    tstate(), ntstate(), reward(0.f), action((ACTION)0), ntstate_isterminal(false) 
+    tstate(), ntstate(), reward(0.f), action((ACTION)0), ntstate_isterminal(false)
   {}
   Exp(t::Tensor st, ACTION a, float r, t::Tensor nst, bool isterm):
     tstate(st), ntstate(nst), reward(r), action(a), ntstate_isterminal(isterm)

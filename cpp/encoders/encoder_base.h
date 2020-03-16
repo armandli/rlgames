@@ -39,7 +39,6 @@ struct ActionEncoderBase {
   }
   static constexpr uint action_size(){
     return Sub::action_size();
-    //return static_cast<Sub*>(this)->action_size();
   }
 };
 
